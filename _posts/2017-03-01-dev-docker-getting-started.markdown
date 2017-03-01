@@ -2,6 +2,7 @@
 layout: post
 title:  "[Docker] Getting Startted"
 date:   2017-03-01 16:00:00 +0900
+author: leeyh0216
 categories: docker dev
 ---
 
@@ -61,4 +62,12 @@ $ sudo docker ps -a
 
 {% highlight bash %}
 $ sudo docker attach {컨테이너 이름 또는 ID}
+{% endhighlight %}
+
+- Docker Container를 Image로 저장하기
+
+  실행 되었던 Docker Container를 Image로 저장하는 방법은 다음과 같습니다
+  
+{% highlight bash %}
+$ sudo docker commit -m "변경사항 기록" {컨테이너 명} {저장할 이미지 명}:{버전}
 {% endhighlight %}

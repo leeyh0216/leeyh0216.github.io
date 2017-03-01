@@ -2,6 +2,7 @@
 layout: post
 title:  "[Docker] How to install Docker"
 date:   2017-03-01 15:24:00 +0900
+author: leeyh0216
 categories: docker dev
 ---
 
