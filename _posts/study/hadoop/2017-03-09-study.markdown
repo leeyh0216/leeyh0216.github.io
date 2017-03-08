@@ -65,7 +65,7 @@ email = john.email();
 {% endhighlight %}
 
   Protocol Buffers 는 아무래도 동일한 데이터를 네트워크를 통해 전송하거나, 퍼포먼스에 영향이 큰 작업을 할 때 사용할 수 있을 듯 하다.
-
+[참고 페이지](http://sjava.net/tag/thrift/)
 ### Hadoop 소스 분석하기
 
 Hadoop 소스를 분석하기 위해서 github.io의 Hadoop Repository의 Branch-2.6.3을 fork하여 가져왔다.
