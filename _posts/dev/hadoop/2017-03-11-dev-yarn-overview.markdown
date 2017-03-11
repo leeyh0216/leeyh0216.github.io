@@ -10,7 +10,7 @@ categories: dev hadoop yarn
 
 ### Apache Hadoop Yarn
 
-Yarn의 기본적인 아이디어는 리소스 관리와 잡 스케쥴링/모니터링을 다른 데몬으로 분리한 것이다. Yarn은 Global ResourceManager(RM)와 Application Master로 나뉘어져 있다. Yarn에서 작동하는 Application은 Single Job 또는 Job의 Directed Acyclic Graph이다.
+Yarn의 기본적인 아이디어는 리소스 관리와 잡 스케쥴링/모니터링을 다른 데몬으로 분리한 것입니다. Yarn은 Global ResourceManager(RM)와 Application Master(AM)로 나뉘어져 있습니다. Yarn에서 작동하는 Application은 Single Job 또는 Job의 Directed Acyclic Graph로 취급됩니다.
 
 ResourceManager와 NodeManager는 Data Computation Framework를 구성합니다. Resource Manager은 Yarn을 구성하는 시스템의 전체 리소스 관리를 담당하니다. Node Manager는 Yarn을 이루는 각 서버의 Container를 관리하고 Container들의 Resource(ex. Cpu, Memory, Disk, Network) 관리 정보를 모니터링하고 ResourceManager에게 전송하는 역할을 담당합니다.
 
