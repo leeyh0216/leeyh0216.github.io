@@ -3,7 +3,7 @@ layout: post
 title:  "[Ubuntu] SSH 원격 호스트 자동 로그인 설정"
 date:   2017-03-02 00:50:00 +0900
 author: leeyh0216
-categories: ubuntu dev
+categories: ubuntu tip
 ---
 
 >Ubuntu 14.04에서 원격 서버에 ssh public key를 등록하여 비밀번호 없이 로그인 하는 방법을 기술합니다. 
