@@ -7,6 +7,7 @@ categories: dev hadoop yarn
 ---
 
 > 이 문서는 Yarn Application 내부 동작에 대해 확인을 위하여 작성하였습니다. 
+소스코드는 다음 Git Repository를 참고해주세요 : [leeyh0216:YarnJobExecutor](https://github.com/leeyh0216/YarnJobExecutor)
 
 ### Yarn Application 개발
 
