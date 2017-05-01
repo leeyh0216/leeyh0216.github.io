@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "[Spark] Spark RDD"
+title:  "[Spark] 동일성, 동등성, Spark의 distinct"
 date:   2017-04-30 16:50:00 +0900
 author: leeyh0216
 categories: dev lang spark
