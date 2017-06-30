@@ -1,0 +1,120 @@
+---
+layout: post
+title:  "[DeepEdu5] Python 기초"
+date:   2017-06-24 04:00:00 +0900
+author: leeyh0216
+categories: deeplearning study deepedu5
+---
+
+> 이 문서는 모두의 연구소 DeepLearning Edu 5기 6월 24일 스터디 진행을 위해 작성한 문서입니다.
+
+## 개발환경 설정
+> Ubuntu 14.04 에 파이썬을 설치하는 과정을 확인하고, Dockerfile을 작성한다.
+> 설치는 아나콘다로 진행하고, 파이썬 3.5를 설치할 수 있도록 한다.
+
+### 아나콘다 설치
+아나콘다 홈페이지 다운로드 탭(https://www.continuum.io/downloads)을 가면 아나콘다 최신판을 다운로드 받을 수 있다. 
+
+하지만, 이전 버전을 다운로드 받기 위해서는 이전 설치파일들을 모아놓은 다운로드 아카이브(https://repo.continuum.io/archive/index.html)로 접근해야 한다.
+
+아나콘다 버전 4.3에서 python 3.6으로 업데이트 하였으므로, 아나콘다 4.2 버전을 다운로드 받아 python 버전 3.5를 이용할 수 있도록 한다. 
+Anaconda3-4.2.0-Linux-x86.sh 를 다운로드 받고 설치를 진행한다.
+
+{% highlight bash %}
+
+bash> apt-get update
+bash> apt-get install -y wget
+bash> mkdir /home/anaconda && cd /home/anaconda
+bash> wget https://repo.continuum.io/archive/Anaconda3-4.2.0-Linux-x86.sh
+bash> chmod 755 Anaconda3-4.2.0-Linux-x86.sh
+bash> /home/anaconda/Anaconda3-4.2.0-Linux-x86.sh -b
+bash> echo "ANACONDA_HOME=/root/anaconda3/
+PATH=\$PATH:\$ANACONDA_HOME/bin" >> ~/.bashrc
+bash> source ~/.bashrc
+
+{% endhighlight %}
+
+위 스크립트들을 실행하면 Anaconda3 설치와 환경변수 설정을 완료할 수 있다.
+
+### jupyter notebook 실행해보기
+
+이제 jupyter notebook을 실행해보자.
+{% highlight bash %}
+bash> jupyter notebook --ip 0.0.0.0 --port 8888 --notebook-dir /home/anaconda --no-browser
+{% endhighlight %}
+
+웹 브라우저에서 localhost:8888로 접속해보면 정상적으로 jupyter가 동작하는 것을 확인할 수 있다.
+
+### 파이썬 실행해보기
+
+터미널에서 python 명령어를 입력하여 python을 실행해보자.
+다음과 같은 텍스트가 출력되는 것을 확인할 수 있다.
+
+{% highlight python %}
+
+bash> python
+Python 3.5.2 |Anaconda 4.2.0 (64-bit)| (default, Jul  2 2016, 17:53:06)
+[GCC 4.4.7 20120313 (Red Hat 4.4.7-1)] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>>
+{% endhighlight %}
+
+## 파이썬 기본 개념
+
+### 산술 연산
+
+파이썬에서 덧셈, 곱셈, 나눗셈 등은 일반적인 프로그래밍 언어에서와 동일하게 사용할 수 있다.
+추가적으로 파이썬에서는 거듭제곱 연산 등도 언어 차원에서 지원한다.
+
+다음은 산술 연산 코드의 예이다.
+
+{% highlight python %}
+>>> 1+2
+3
+>>> 2*3
+6
+>>> 6/2
+3.0
+>>> 10%3
+1
+>>> 2**3
+8
+{% endhighlight %}
+
+위의 ** 연산은 거듭제곱 연산이다. 연산자 앞의 수를 연산자 뒤의 수만큼 거듭제곱한다.
+
+### 자료형
+
+파이썬 언어에도 자료형이 존재한다. 다른 언어와는 조금 다르게 타입 선언이 필요 없이 변수에 값을 할당할 수 있지만, 그렇다고 해서 런타임 시점에 해당 변수의 타입이 존재하지 않는 것은 아니다.
+
+특정 변수의 타입을 알고 싶다면 type()함수를 이용하여 타입을 확인할 수 있다.
+
+{% highlight python %}
+>>> a = 10
+>>> type(a)
+<class 'int'>
+>>> a = 1.0
+>>> type(a)
+<class 'float'>
+>>> a = "hello world"
+>>> type(a)
+<class 'str'>
+{% endhighlight %}
+
+### 리스트
+
+파이썬에도 다른 언어와 동일하게 리스트가 존재한다.
+인덱스의 시작은 0이며, [] 를 사용하여 초기화할 수 있다.
+
+다음은 리스트 사용의 예이다.
+{% highlight python %}
+>>> a = [1,2,3,4,5]
+>>> type(a)
+<class 'list'>
+>>> print(a[0])
+1
+>>> print(len(a))
+5
+{% endhighlight %}
+
+### 딕셔너리
