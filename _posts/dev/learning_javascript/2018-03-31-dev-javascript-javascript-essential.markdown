@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "[Javascript] 자바스크립트 기초"
+title:  "[Javascript] 자바스크립트 기초(변수, 상수, 객체)"
 date:   2018-03-31 15:24:00 +0900
 author: leeyh0216
 categories: javascript essential
