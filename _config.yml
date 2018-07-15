@@ -1,0 +1,10 @@
+title : leeyh0216's dev blog
+description: "leeyh0216's dev blog"
+
+markdown: kramdown
+highlighter: rouge
+logo: false
+paginate: 15
+baseurl: /
+plugins: [jekyll-gist]
+permalink: /:year/:month/:title.html
