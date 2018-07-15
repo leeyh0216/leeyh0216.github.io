@@ -6,7 +6,7 @@ author: leeyh0216
 categories: docker dev
 ---
 
-> Docker 기본 사용법을 서술한 문서입니다.
+> Dodcker 기본 사용법을 서술한 문서입니다.
 Ubuntu 14.04 에서 Ubuntu 14.04 Container를 띄우는 방법을 서술합니다.
 
 ### Ubuntu 14.04 이미지 다운로드
