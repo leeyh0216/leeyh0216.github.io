@@ -1,6 +1,6 @@
 <div class="ui card">
 
-<!--     {% assign foundImage = 0 %}
+    <!--     {% assign foundImage = 0 %}
     {% assign images = post.content | split:"<img" %}
     {% for image in images %}
         {% if image contains 'src' %}
@@ -30,10 +30,9 @@
     </div>
     <div class="extra content">
         <i class="comments icon"></i>
-        <a href="{{ post.url }}index.html#disqus_thread" data-disqus-identifier="{{post.url}}">
+        <a href="{{ post.url }}#disqus_thread" data-disqus-identifier="{{post.id}}">
             0 Comments
-        </a>
-        {% if post.author %}
+        </a> {% if post.author %}
         <div class="right floated author">
             <img class="ui avatar image" src="/assets/img/profile.jpg"> {{ post.author }}
         </div>
