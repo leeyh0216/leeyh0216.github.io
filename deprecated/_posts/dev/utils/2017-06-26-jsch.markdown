@@ -1,0 +1,211 @@
+---
+layout: post
+title:  "[Util] JSCH"
+date:   2017-06-25 21:33:00 +0900
+author: leeyh0216
+categories: dev utils jsch
+---
+
+> Java에서 ssh 프로토콜을 이용하여 원격 서버에 명령을 내릴 수 있는 라이브러리인 JSCH를 설명하기 위하 여 작성한 글입니다.
+
+## JSCH
+
+### 개요
+
+JSCH를 개발한 JCraft(http://www.jcraft.com/jsch/)의 홈페이지에는 JSCH에 대한 설명이 다음과 같이 기재되어 있다.
+
+> JSCH는 SSH2 의 자바 구현체입니다.
+> 
+> JSCH는 sshd 서버 연결, 포트 포워딩, X11 포워딩, 파일 전송 등을 자바 프로그램에서 가능하게 합니다.
+
+### Maven Dependency
+
+이 포스트에서는 JSCH의 최신 버전인 0.1.54버전(2016년 9월 3일 배포)를 사용합니다.
+https://mvnrepository.com/artifact/com.jcraft/jsch/0.1.54 페이지에서 확인할 수 있고, gradle을 사용하는 경우 다음 구문을 dependencies에 넣음으로써 사용할 수 있습니다.
+
+{% highlight gradle %}
+compile group: 'com.jcraft', name: 'jsch', version: '0.1.54'
+{% endhighlight %}
+
+### 사용 클래스
+
+1. [Jsch](http://epaul.github.io/jsch-documentation/javadoc/com/jcraft/jsch/JSch.html)
+  
+  Jsch 클래스는 SSH 통신에 필요한 Configuration 기능을 제공합니다. 또한 Session 클래스를 해당 Configuration으로 생성하기 위한 Factory 역할도 수행합니다.
+  - 새로운 Session을 생성하기 위해서는 getSession 함수를 사용
+  - public-key authentication을 수행하기 위하여 addIdentity 함수 사용
+  - host keys를 확인하기 위해서 setKnownHosts 사용
+
+2. [Session](http://epaul.github.io/jsch-documentation/javadoc/com/jcraft/jsch/Session.html)
+
+  Session 클래스는 SSH 서버와의 연결을 나타냅니다. 하나의 세션은 1개 이상의 Channel을 포함할 수 있고, Channel은 openChannel 함수를 사용해서 만들 수 있습니다.
+  
+  Session은 connect() 함수로 열 수 있고, disconnect() 함수로 닫을 수 있습니다.
+  
+3. [ChannelExec](http://epaul.github.io/jsch-documentation/javadoc/com/jcraft/jsch/ChannelExec.html)
+
+  ChannelExec는 원격 서버에 명령어 수행을 요청하기 위한 클래스입니다.
+
+### 사용 예제
+
+{% highlight java %}
+package com.leeyh0216.servicewatcher.server.services;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.Properties;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.JSchException;
+import com.jcraft.jsch.Session;
+
+public class SSHService {
+	private static final Logger logger = LoggerFactory.getLogger(SSHService.class);
+	private JSch jsch = new JSch();
+	
+	public SSHService(){
+		logger.info("Initalize SSH Service");
+		
+	}
+	
+	public void executeSSHCommand(String host, int port, String user, String password, String command){
+		logger.info("Execute {} to {}:{} with {}",command, host, port, user);
+		
+		Properties sessionConfig = new Properties();
+		sessionConfig.setProperty("StrictHostKeyChecking", "no");
+		
+		Session session = null;
+		InputStream inputStream;
+		InputStreamReader inputStreamReader = null;
+		BufferedReader bufferedReader = null;
+		
+		try{
+			session = createSession(host, port, user, password, sessionConfig);
+			session.connect();
+			
+			ChannelExec execChannel = (ChannelExec)session.openChannel("exec");
+			execChannel.setCommand(command);
+			
+			inputStream = execChannel.getInputStream();
+			inputStreamReader = new InputStreamReader(inputStream);
+			bufferedReader = new BufferedReader(inputStreamReader);
+			
+			execChannel.connect();
+			
+			String readedLine = null;
+			StringBuilder sb = new StringBuilder();
+			
+			while((readedLine = bufferedReader.readLine())!=null)
+				sb.append(readedLine);
+			
+			logger.info("exec output = "+sb.toString());
+			execChannel.disconnect();
+		}
+		catch(Exception e){
+			logger.error("Error occured",e);
+		}
+		finally{
+			if(session!=null && session.isConnected())
+				session.disconnect();
+		}
+	}
+	
+	private Session createSession(String host, int port, String user, String password, Properties sessionProperties) throws JSchException{
+		Session session = jsch.getSession(user, host, port);
+		session.setPassword(password);	
+		session.setConfig(sessionProperties);
+		
+		return session;
+	}	
+}
+{% endhighlight %}
+
+## Testing
+
+JSCH를 테스트 하기 위해서는 SSH 서버가 필요하다.
+테스팅 시에 실제 서버를 이용할 수 없으므로, sshd 서버의 Java 구현체인 apache의 sshd 서버를 사용하도록 한다.
+
+### Maven Dependency
+
+sshd 서버는 Apache Mina 프로젝트에서 제공한다.
+Maven Repository 주소는 https://mvnrepository.com/artifact/org.apache.sshd/sshd-core이며, 우리는 1.4.0 버전(2017년 2월 릴리즈)를 사용하도록 한다.
+
+{% highlight groovy%}
+compile group: 'org.apache.sshd', name: 'sshd-core', version: '1.4.0'
+{% endhighlight %}
+
+### Test Code
+
+{% highlight java %}
+package com.leeyh0216.servicewatcher.server.services;
+
+import org.apache.sshd.common.file.nativefs.NativeFileSystemFactory;
+import org.apache.sshd.server.Command;
+import org.apache.sshd.server.CommandFactory;
+import org.apache.sshd.server.SshServer;
+import org.apache.sshd.server.auth.password.PasswordAuthenticator;
+import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
+import org.apache.sshd.server.session.ServerSession;
+import org.apache.sshd.server.shell.ProcessShellFactory;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class SSHServiceTest {
+	private static final Logger logger = LoggerFactory.getLogger(SSHServiceTest.class);
+	
+	@Rule
+	public TemporaryFolder rootFolder = new TemporaryFolder();
+	
+	private static final String USER = "test";
+	private static final String PASSWORD = "test";
+	
+	private SshServer sshServer;
+	
+	@Before
+	public void setUp() throws Exception{
+		sshServer = SshServer.setUpDefaultServer();
+		sshServer.setHost("127.0.0.1");
+		sshServer.setPort(20022);
+		sshServer.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
+		sshServer.setFileSystemFactory(new NativeFileSystemFactory(){
+
+			@Override
+			public String getUsersHomeDir() {
+				return rootFolder.getRoot().getAbsolutePath();
+			}
+			
+		});
+		sshServer.setCommandFactory(new CommandFactory() {
+			
+			@Override
+			public Command createCommand(String command) {
+				return new ProcessShellFactory(command.split(" ")).create();
+			}
+		});
+        sshServer.setPasswordAuthenticator(new PasswordAuthenticator() {
+            @Override
+            public boolean authenticate(final String username, final String password, final ServerSession session) {
+                return username.equals(USER) && password.equals(password);
+            }
+        });
+        sshServer.start();
+	}
+	
+	@After
+	public void tearDown() throws Exception{
+		sshServer.close();
+	}
+}
+
+{% endhighlight %}
+
+위 코드의 경우 워낙 단순하므로, 따로 설명은 하지 않도록 한다.

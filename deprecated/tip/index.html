@@ -1,0 +1,17 @@
+---
+layout: default
+title: Tip
+permalink: /tip/
+---
+
+<h1 class="page-heading">Tip</h1>
+<ul id="post-list" class="post-list">
+    {% for post in site.categories.tip %}
+	<li>
+        	<span class="post-meta">{{ post.date | date_to_string }}</span>
+        	<h2>
+          		<a class="post-link" href="{{ post.url }}">{{ post.title }}</a>
+        	</h2>
+      	</li>
+    {% endfor %}
+</ul>
