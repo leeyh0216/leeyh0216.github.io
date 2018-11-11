@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Spring cloud zuul(1)"
+title:  "Spring Cloud - Zuul(1)"
 date:   2018-11-10 15:00:00 +0900
 author: leeyh0216
 categories: microservice
@@ -31,13 +31,15 @@ categories: microservice
 
 # Spring Cloud Zuul
 
-Zuul은 원래 Netflix에서 사용하던 Software level Gateway이며, 아래와 같은 기능을 제공한다.(출처: https://github.com/Netflix/zuul)
+Netflix Zuul Wiki(https://github.com/Netflix/zuul) 페이지에는 Zuul에 대하여 아래와 같이 설명하고 있다.
 
-* Dynamic Routing
-* Monitoring
-* Resiliency
-* Security
-* etc...
+> Zuul은 Device, Web Sites, Streaming Application 등의 모든 요청을 수신하는 Front Door 입니다.
+
+> Zuul은 Edge Service Application으로써 동적 라우팅(Dynamic Routing), 모니터링, 탄력성(확장성), 보안 등의 기능을 제공합니다.
+
+정리해보자면 Zuul은 Software Level의 Gateway라고 생각하면 된다. 기본적인 Routing 기능에 Filter를 추가해서 위와 같은 모니터링, 보안 등의 기능을 추가할 수 있다.
+
+Spring Cloud Zuul은 Netflix Open Source Project인 Zuul을 Spring Framework 위에서 동작하도록 만든 것이다.
 
 spring.io Guide 문서인 Routing-and-Filtering을 이용하여 데모를 만들어 보았다.(https://github.com/leeyh0216/spring-cloud-zuul-sample)
 
