@@ -372,10 +372,10 @@ public class MyService implements DisposableBean{
 {% endhighlight %}
 
 호출 결과 아래와 같은 로그가 발생하였다.
-{% highlight java %}
+{% highlight text %}
 preDestory Called
 destroy Called
-{% highlight java %}
+{% endhighlight %}
 
 즉, `@PreDestory` 어노테이션이 `destroy()` 메서드보다 높은 우선순위를 갖는 것을 볼 수 있다.
 
