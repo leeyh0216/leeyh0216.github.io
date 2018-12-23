@@ -45,6 +45,16 @@ Configurtion Metadata는
 
 위 그림과 같이 사용자는 비즈니스 로직이 포함된 POJO(Plain Old Java Object)와 POJO 들을 초기화, 조합하는 방식을 기술한 Configuration 메타데이터만을 작성하면, Spring Container는 이러한 내용을 조합하여 System 을 구성하게 된다.
 
+## Bean Overview
+
+Spring IoC Container는 Bean을 내부적으로 `BeanDefinition` 객체로 관리한다. `BeanDefinition` 객체에는 다음과 같은 메타데이터들이 포함되어 있다:
+
+* A package-qualified class name: Bean 의 구현이 정의된 클래스 정보(즉, Bean 의 클래스 정보)
+
+* Scope, life cycle callbacks 등 Bean 의 동작 구성
+
+* Bean이 동작하기 위해 참조하는 다른 Bean 들. Collaborators 혹은 Dependencies 라고도 불리운다.
+
 ## Java-based Container Configuration
 
 > 위의 내용까지는 Springframework 의 1. IoC Container에 있는 내용이며, 이후 내용은 XML 기반으로 설명되어 있어, Java Based Container Configuration이 기술된 1.12 장으로 넘어오게 되었다.
@@ -132,6 +142,12 @@ My Service: MY_SERVICE
 main 함수에서는 MyService 객체를 초기화하는 부분이 전혀 없지만, Spring의 ApplicationContext 객체는 우리가 제공한 Configuration Metadata를 이용하여 MyService 객체를 초기화 한 것을 확인할 수 있다.
 
 > 여러 개의 Configuration Metadata를 등록하는 방법(register, refresh 함수 사용)도 있지만, 이러한 방식은 잘 사용하지 않기 때문에 정리하지 않도록 한다.
+
+> 예제에서 ApplicationContext의 `T getBean(Class<T> requiredType)` 을 이용하여 메인 함수 내에서 Bean을 가져오는 방식을 사용하고 있는데, 1.2.3. Using the Container 에는 아래와 같은 내용이 나온다.
+
+>> `getBean` 메소드를 이용하여 초기화된 Bean 객체를 가져올 수 있지만, 이상적으로는 어플리케이션의 코드에서는 `getBean`과 같은 Spring API를 호출하여 사용해서는 안된다.
+
+> 완전히 제어 흐름을 Spring IoC Container에게 맡겨야 한다는 의미인 것이고, 회사 업무를 진행하며 느꼇던 부분은 적어도 Web Framework에서의 Spring Project에서는 ApplicationContext 자체를 써본 일이 없는 것 같다.
 
 ### Enabling Component Scanning with `scan(String...)`
 
