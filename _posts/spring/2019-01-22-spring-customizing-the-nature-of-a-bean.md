@@ -260,5 +260,22 @@ JavaDoc에는 아래와 같이 기술되어 있다.
 
 그러나 실제로 해당 함수가 언제 호출될 지 알 수 없기때문에, 해당 함수의 사용을 권하지 않는다고 되어 있다.
 
-### Lifecycle 인터페이스
+### Combining lifecycle mechanisms
+
+Spring 2.5 버전부터
+
+* InitializingBean, DisposableBean
+* Custom init, destroy methods
+* @PostConstruct, @PreDestroy
+
+등 Bean의 생애주기를 컨트롤 할 수 있는 방법이 제공된다.
+
+위 메소드들은 아래와 같은 순서로 호출된다.
+
+1. @PostConstruct Annotation이 붙은 메서드
+2. InitializingBean을 상속받았을 때 구현하는 afterPropertiesSet 메서드
+3. 커스텀 초기화 메서드
+4. @PreDestroy Annotation이 붙은 메스더
+5. DisposableBean을 상속받았을 때 구현하는 destroy() 메서드
+6. 커스텀 소멸 메서드
 
