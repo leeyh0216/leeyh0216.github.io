@@ -6,7 +6,7 @@ author: leeyh0216
 categories: spring
 ---
 
-#Validation에 책임 연쇄 패턴 적용하기
+# Validation에 책임 연쇄 패턴 적용하기
 
 데이터를 저장하기 전에 데이터에 대한 검증(Validation)을 수행해야 하는 경우가 있다.
 
@@ -77,32 +77,47 @@ public class OldValidationExample {
 
 그러나 Validation의 경우 현재 Handler에서 데이터에 대한 이상이 검출되는 경우 IllegalArgumentException을 호출하므로써 Chain의 진행을 끊을 수 있기 때문에 그냥 List에 Handler를 넣고 순차적으로 호출하는 방식으로 구현하였다.
 
-**OldValidationExample.java**
+**NewValidationExample.java**
 {% highlight java %}
 package com.leeyh0216.spring.examples.validation.plain;
 
 import com.leeyh0216.spring.examples.validation.Metadata;
 
-public class OldValidationExample {
+import java.util.ArrayList;
+import java.util.List;
 
-    public static abstract class AbstractMetadataManager {
+public class NewValidationExample {
 
+    public interface IValidationHandler {
+
+        void validate(Metadata metadata);
+
+    }
+
+    public static class HandlerEventChain {
+        private List<IValidationHandler> handlerList = new ArrayList<>();
+
+        public void addHandler(IValidationHandler handler) {
+            handlerList.add(handler);
+        }
+
+        public void validate(Metadata metadata) {
+            for (IValidationHandler handler : handlerList)
+                handler.validate(metadata);
+        }
+    }
+
+    public static class IdValidationHandler implements IValidationHandler {
+        @Override
         public void validate(Metadata metadata) {
             if (metadata.getId() == null || metadata.getId().isEmpty())
                 throw new IllegalArgumentException("ID must not be null or empty string");
-
-            //하위 클래스에서 작성한 postValidate를 호출해준다.
-            postValidate(metadata);
         }
-
-        //자식 클래스들이 Metadata에 대한 Validation을 수행할 수 있도록 한다.
-        protected abstract void postValidate(Metadata metadata);
     }
 
-    public static class SampleMetadataManager extends AbstractMetadataManager {
-
+    public static class OwnerValidationHandler implements IValidationHandler {
         @Override
-        public void postValidate(Metadata metadata) {
+        public void validate(Metadata metadata) {
             if (metadata.getOwner() == null || metadata.getOwner().isEmpty())
                 throw new IllegalArgumentException("Owner must not be null or empty string");
         }
@@ -113,11 +128,15 @@ public class OldValidationExample {
         m1.setId("hello");
         m1.setOwner("world");
 
-        SampleMetadataManager metadataManager = new SampleMetadataManager();
-        metadataManager.validate(m1);
+        HandlerEventChain eventChain = new HandlerEventChain();
+        eventChain.addHandler(new IdValidationHandler());
+        eventChain.addHandler(new OwnerValidationHandler());
+
+        eventChain.validate(m1);
 
         m1.setOwner(null);
-        metadataManager.validate(m1);
+
+        eventChain.validate(m1);
     }
 }
 {% endhighlight %}
