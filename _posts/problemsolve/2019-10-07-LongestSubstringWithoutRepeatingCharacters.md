@@ -6,7 +6,7 @@ author: leeyh0216
 categories: ps
 ---
 
-- 출처: [https://leetcode.com/problems/longest-substring-without-repeating-characters/](LeetCode - Longest Substring Without Repeating Characters)
+- 출처: [LeetCode - Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/)
 - 난이도: 중
 - 관련 기술: Sliding Window
 - 문제 요약: 입력으로 주어진 문자열(s)에서 **반복된 문자를 가지지 않는 최대 길이의 부분 문자열**을 찾는 문제이다.
