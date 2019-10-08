@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Median of Two Sorted Arrays | leeyh0216’s devlog</title>
+<meta name="generator" content="Jekyll v3.8.6" />
+<meta property="og:title" content="Median of Two Sorted Arrays" />
+<meta name="author" content="leeyh0216" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="출처: LeetCode - Median of Two Sorted Arrays 난이도: 상 관련 기술: Array, Binary Search, Divide and Conquer 문제 요약: 미리 정렬된 2개의 배열을 합친 배열의 중간 값(median)을 찾아내면 되는 문제이다. 풀이일 2019년 10월 7일 풀이 방법" />
+<meta property="og:description" content="출처: LeetCode - Median of Two Sorted Arrays 난이도: 상 관련 기술: Array, Binary Search, Divide and Conquer 문제 요약: 미리 정렬된 2개의 배열을 합친 배열의 중간 값(median)을 찾아내면 되는 문제이다. 풀이일 2019년 10월 7일 풀이 방법" />
+<link rel="canonical" href="http://localhost:4000/2019-10-07/MedianOfTwoSortedArrays" />
+<meta property="og:url" content="http://localhost:4000/2019-10-07/MedianOfTwoSortedArrays" />
+<meta property="og:site_name" content="leeyh0216’s devlog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2019-10-07T05:00:00+09:00" />
+<script type="application/ld+json">
+{"headline":"Median of Two Sorted Arrays","dateModified":"2019-10-07T05:00:00+09:00","datePublished":"2019-10-07T05:00:00+09:00","url":"http://localhost:4000/2019-10-07/MedianOfTwoSortedArrays","mainEntityOfPage":{"@type":"WebPage","@id":"http://localhost:4000/2019-10-07/MedianOfTwoSortedArrays"},"author":{"@type":"Person","name":"leeyh0216"},"description":"출처: LeetCode - Median of Two Sorted Arrays 난이도: 상 관련 기술: Array, Binary Search, Divide and Conquer 문제 요약: 미리 정렬된 2개의 배열을 합친 배열의 중간 값(median)을 찾아내면 되는 문제이다. 풀이일 2019년 10월 7일 풀이 방법","@type":"BlogPosting","@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Libre+Baskerville:400,400i,700">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+
+  <!-- RSS -->
+  <link type="application/atom+xml" rel="alternate" href="http://localhost:4000/feed.xml" title="leeyh0216's devlog" />
+
+  <!-- Google Analytics-->
+  
+</head>
+
+
+  <body>
+
+    <nav class="nav">
+  <div class="nav-container">
+    <a href="/">
+      <h2 class="nav-title">leeyh0216's devlog</h2>
+    </a>
+    <ul>
+      <li><a href="/about">About</a></li>
+      <li><a href="/">Posts</a></li>
+    </ul>
+  </div>
+</nav>
+
+
+    <main>
+      <div class="post">
+  <div class="post-info">
+    <span>Written by</span>
+    
+        leeyh0216
+    
+
+    
+      <br>
+      <span>on&nbsp;</span><time datetime="2019-10-07 05:00:00 +0900">October 07, 2019</time>
+    
+  </div>
+
+  <h1 class="post-title">Median of Two Sorted Arrays</h1>
+  <div class="post-line"></div>
+
+  <ul>
+  <li>출처: <a href="https://leetcode.com/problems/median-of-two-sorted-arrays/">LeetCode - Median of Two Sorted Arrays</a></li>
+  <li>난이도: 상</li>
+  <li>관련 기술: Array, Binary Search, Divide and Conquer</li>
+  <li>문제 요약: 미리 정렬된 2개의 배열을 합친 배열의 중간 값(median)을 찾아내면 되는 문제이다.</li>
+  <li>풀이일
+    <ul>
+      <li>2019년 10월 7일</li>
+    </ul>
+  </li>
+</ul>
+
+<h4 id="풀이-방법">풀이 방법</h4>
+
+<p>입력으로 들어온 2개의 배열(nums1, nums2)이 이미 정렬되어 있는 상태이므로, 2개의 포인터(l = nums1의 요소를 가리킴, r = nums2의 요소를 가리킴)을 두고 작은 값부터 최종 배열에 추가하여 배열 병합을 수행하고 중간 값을 찾으면 된다.</p>
+
+<h4 id="코드">코드</h4>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">class</span> <span class="nc">Solution</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kt">double</span> <span class="nf">findMedianSortedArrays</span><span class="o">(</span><span class="kt">int</span><span class="o">[]</span> <span class="n">nums1</span><span class="o">,</span> <span class="kt">int</span><span class="o">[]</span> <span class="n">nums2</span><span class="o">)</span> <span class="o">{</span>
+    <span class="kt">int</span> <span class="n">nums1Length</span> <span class="o">=</span> <span class="n">nums1</span><span class="o">.</span><span class="na">length</span><span class="o">,</span> <span class="n">nums2Length</span> <span class="o">=</span> <span class="n">nums2</span><span class="o">.</span><span class="na">length</span><span class="o">,</span> <span class="n">numsLength</span> <span class="o">=</span> <span class="n">nums1Length</span> <span class="o">+</span> <span class="n">nums2Length</span><span class="o">;</span>
+    <span class="kt">int</span><span class="o">[]</span> <span class="n">nums</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">int</span><span class="o">[</span><span class="n">numsLength</span><span class="o">];</span>
+    
+    <span class="kt">int</span> <span class="n">l</span> <span class="o">=</span> <span class="mi">0</span><span class="o">,</span> <span class="n">r</span> <span class="o">=</span> <span class="mi">0</span><span class="o">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+    
+    <span class="k">while</span><span class="o">(</span><span class="n">l</span> <span class="o">&lt;</span> <span class="n">nums1Length</span> <span class="o">&amp;&amp;</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="n">nums2Length</span><span class="o">){</span>
+      <span class="k">if</span><span class="o">(</span><span class="n">nums1</span><span class="o">[</span><span class="n">l</span><span class="o">]</span> <span class="o">&lt;</span> <span class="n">nums2</span><span class="o">[</span><span class="n">r</span><span class="o">]){</span>
+        <span class="n">nums</span><span class="o">[</span><span class="n">cursor</span><span class="o">]</span> <span class="o">=</span> <span class="n">nums1</span><span class="o">[</span><span class="n">l</span><span class="o">];</span>
+        <span class="n">l</span><span class="o">++;</span>
+      <span class="o">}</span>
+      <span class="k">else</span><span class="o">{</span>
+        <span class="n">nums</span><span class="o">[</span><span class="n">cursor</span><span class="o">]</span> <span class="o">=</span> <span class="n">nums2</span><span class="o">[</span><span class="n">r</span><span class="o">];</span>
+        <span class="n">r</span><span class="o">++;</span>
+      <span class="o">}</span>
+      <span class="n">cursor</span><span class="o">++;</span>
+    <span class="o">}</span>
+    
+    <span class="k">while</span><span class="o">(</span><span class="n">l</span> <span class="o">&lt;</span> <span class="n">nums1Length</span><span class="o">){</span>
+      <span class="n">nums</span><span class="o">[</span><span class="n">cursor</span><span class="o">]</span> <span class="o">=</span> <span class="n">nums1</span><span class="o">[</span><span class="n">l</span><span class="o">];</span>
+      <span class="n">cursor</span><span class="o">++;</span>
+      <span class="n">l</span><span class="o">++;</span>
+    <span class="o">}</span>
+    <span class="k">while</span><span class="o">(</span><span class="n">r</span> <span class="o">&lt;</span> <span class="n">nums2Length</span><span class="o">){</span>
+      <span class="n">nums</span><span class="o">[</span><span class="n">cursor</span><span class="o">]</span> <span class="o">=</span> <span class="n">nums2</span><span class="o">[</span><span class="n">r</span><span class="o">];</span>
+      <span class="n">cursor</span><span class="o">++;</span>
+      <span class="n">r</span><span class="o">++;</span>
+    <span class="o">}</span>
+    
+    <span class="k">if</span><span class="o">(</span><span class="n">numsLength</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="o">)</span>
+      <span class="k">return</span> <span class="n">nums</span><span class="o">[</span><span class="n">numsLength</span> <span class="o">/</span> <span class="mi">2</span><span class="o">];</span>
+    <span class="k">else</span>
+      <span class="nf">return</span> <span class="o">((</span><span class="kt">double</span><span class="o">)</span><span class="n">nums</span><span class="o">[</span><span class="n">numsLength</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="o">]</span> <span class="o">+</span> <span class="o">(</span><span class="kt">double</span><span class="o">)</span><span class="n">nums</span><span class="o">[</span><span class="n">numsLength</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">])</span> <span class="o">/</span> <span class="mf">2.0d</span><span class="o">;</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+
+</div>
+
+<div class="pagination">
+  
+    <a href="/2019-10-07/SuperReducedString" class="left arrow">&#8592;</a>
+  
+  
+    <a href="/2019-10-07/LongestSubstringWithoutRepeatingCharacters" class="right arrow">&#8594;</a>
+  
+
+  <a href="#" class="top">Top</a>
+</div>
+
+    </main>
+
+    <footer>
+  <span>
+    &copy; <time datetime="2019-10-08 19:35:35 +0900">2019</time> leeyh0216. Made with Jekyll using the <a href="https://github.com/chesterhow/tale/">Tale</a> theme.
+  </span>
+</footer>
+
+  </body>
+</html>
