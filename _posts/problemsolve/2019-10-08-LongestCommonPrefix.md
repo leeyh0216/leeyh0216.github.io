@@ -1,9 +1,11 @@
 ---
 layout: post
-title:  "Longest Common Prefix"
+title:  "LeetCode - Longest Common Prefix"
 date:   2019-10-08 21:00:00 +0900
 author: leeyh0216
-categories: ps
+tags:
+- ps
+- string
 ---
 
 - 출처: [LeetCode - Longest Common Prefix](https://leetcode.com/problems/longest-common-prefix/)

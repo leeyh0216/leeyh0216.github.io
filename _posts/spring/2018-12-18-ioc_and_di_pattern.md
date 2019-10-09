@@ -3,7 +3,8 @@ layout: post
 title:  "Inversion of Control Containers and the Dependency Injection pattern"
 date:   2018-12-19 10:00:00 +0900
 author: leeyh0216
-categories: Spring IoC DI
+tags:
+- spring
 ---
 
 > 이 글은 Martin Fowler의 Inversion of Control Containers and the Dependency Injection pattern을 요약 정리한 글입니다.

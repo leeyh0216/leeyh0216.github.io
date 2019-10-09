@@ -3,7 +3,8 @@ layout: post
 title:  "Spark UDF와 DataSet에서의 NULL 처리"
 date:   2018-11-13 10:00:00 +0900
 author: leeyh0216
-categories: spark
+tags:
+- spark
 ---
 
 # 개요

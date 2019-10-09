@@ -3,7 +3,6 @@ layout: post
 title:  "데이터베이스 개론 - 데이터베이스 시스템"
 date:   2019-03-22 10:00:00 +0900
 author: leeyh0216
-categories: database
 ---
 
 # 데이터베이스 시스템

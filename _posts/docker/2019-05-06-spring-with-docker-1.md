@@ -3,7 +3,9 @@ layout: post
 title:  "Spring + MongoDB + Docker 조합 사용 테스트"
 date:   2019-05-06 10:00:00 +0900
 author: leeyh0216
-categories: spring
+tags:
+- docker
+- spring
 ---
 
 # 프로젝트 초기화

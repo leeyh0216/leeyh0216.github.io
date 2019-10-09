@@ -3,7 +3,8 @@ layout: post
 title:  "ElasticSearch + MetricBeat + Kibana로 서버 모니터링하기"
 date:   2018-11-19 15:00:00 +0900
 author: leeyh0216
-categories: elasticsearch
+categories:
+- elasticsearch
 ---
 
 # 개요

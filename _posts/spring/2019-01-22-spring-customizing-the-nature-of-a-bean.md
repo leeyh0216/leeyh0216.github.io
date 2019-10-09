@@ -3,7 +3,8 @@ layout: post
 title:  "Spring Core Technologies - Customizing the nature of a bean"
 date:   2019-01-23 10:00:00 +0900
 author: leeyh0216
-categories: spring
+tags:
+- spring
 ---
 
 # Customizing the nature of a bean

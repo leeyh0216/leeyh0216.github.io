@@ -3,7 +3,8 @@ layout: post
 title:  "Spring Core Technologies - Bean Scopes"
 date:   2019-01-22 10:00:00 +0900
 author: leeyh0216
-categories: spring
+tags:
+- spring
 ---
 
 # Bean Scopes

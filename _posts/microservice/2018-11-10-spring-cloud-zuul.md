@@ -3,7 +3,8 @@ layout: post
 title:  "Spring Cloud - Zuul(1)"
 date:   2018-11-10 15:00:00 +0900
 author: leeyh0216
-categories: microservice
+tags:
+- spring
 ---
 
 # 개요

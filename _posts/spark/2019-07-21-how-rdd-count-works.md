@@ -3,7 +3,8 @@ layout: post
 title:  "Spark RDD의 count()는 어떻게 동작하는가?(Shuffle이 없는, Driver 편)"
 date:   2019-07-21 21:00:00 +0900
 author: leeyh0216
-categories: spark
+tags:
+- spark
 ---
 
 # Spark RDD의 count()는 어떻게 동작하는가?(Shuffle이 없는, Driver 편)

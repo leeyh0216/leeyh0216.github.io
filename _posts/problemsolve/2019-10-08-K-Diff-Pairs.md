@@ -1,9 +1,11 @@
 ---
 layout: post
-title:  K diff pairs in array"
+title:  "LeetCode - K diff pairs in array"
 date:   2019-10-08 21:00:00 +0900
 author: leeyh0216
-categories: ps
+tags:
+- ps
+- twopointer
 ---
 
 - 출처: [LeetCode - K diff pairs in array](https://leetcode.com/problems/k-diff-pairs-in-an-array/)

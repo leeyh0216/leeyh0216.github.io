@@ -1,9 +1,12 @@
 ---
 layout: post
-title:  "Longest Substring Without Repeating Characters"
+title:  "LeetCode - Longest Substring Without Repeating Characters"
 date:   2019-10-07 04:00:00 +0900
 author: leeyh0216
-categories: ps
+tags:
+- ps
+- string
+- slidingwindow
 ---
 
 - 출처: [LeetCode - Longest Substring Without Repeating Characters](https://leetcode.com/problems/longest-substring-without-repeating-characters/)

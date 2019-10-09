@@ -3,7 +3,8 @@ layout: post
 title:  "Spring IoC Container - Container, Bean overview"
 date:   2019-05-18 10:00:00 +0900
 author: leeyh0216
-categories: spring-core
+tags:
+- spring
 ---
 
 # The IoC Container

@@ -3,7 +3,8 @@ layout: post
 title:  "Spring Core Technologies - Annotation-based container configuration(1)"
 date:   2019-01-28 10:00:00 +0900
 author: leeyh0216
-categories: spring
+tags:
+- spring
 ---
 
 # Annotation-based container configuration

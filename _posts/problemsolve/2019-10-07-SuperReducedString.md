@@ -1,9 +1,12 @@
 ---
 layout: post
-title:  "Super Reduced String"
+title:  "LeetCode - Super Reduced String"
 date:   2019-10-07 21:40:00 +0900
 author: leeyh0216
-categories: ps
+tags:
+- ps
+- string
+- recursion
 ---
 
 - 출처: [HackerRank - Super Reduced String](https://www.hackerrank.com/challenges/reduced-string/problem)

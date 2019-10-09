@@ -1,9 +1,11 @@
 ---
 layout: post
-title:  "Median of Two Sorted Arrays"
+title:  "LeetCode - Median of Two Sorted Arrays"
 date:   2019-10-07 05:00:00 +0900
 author: leeyh0216
-categories: ps
+tags:
+- ps
+- array
 ---
 
 - 출처: [LeetCode - Median of Two Sorted Arrays](https://leetcode.com/problems/median-of-two-sorted-arrays/)

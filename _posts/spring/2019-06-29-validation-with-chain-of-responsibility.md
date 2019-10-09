@@ -3,7 +3,8 @@ layout: post
 title:  "Validation에 책임 연쇄 패턴 적용하기"
 date:   2019-06-29 22:00:00 +0900
 author: leeyh0216
-categories: spring
+tags:
+- spring
 ---
 
 # Validation에 책임 연쇄 패턴 적용하기

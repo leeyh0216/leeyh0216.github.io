@@ -1,9 +1,11 @@
 ---
 layout: post
-title:  "Generate Parentheses"
+title:  "LeetCode - Generate Parentheses"
 date:   2019-10-08 21:00:00 +0900
 author: leeyh0216
-categories: ps
+tags:
+- ps
+- recursion
 ---
 
 - 출처: [LeetCode - Generate Parentheses](https://leetcode.com/problems/generate-parentheses/)

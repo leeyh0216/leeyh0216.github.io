@@ -3,7 +3,9 @@ layout: post
 title:  "Spring with RabbitMQ(1)"
 date:   2018-12-30 10:00:00 +0900
 author: leeyh0216
-categories: spring
+tags:
+- spring
+- rabbitmq
 ---
 
 # Spring with RabbitMQ

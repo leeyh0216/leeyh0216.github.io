@@ -17,6 +17,7 @@ author:
 markdown:       kramdown
 include:
   - _pages
+  - _tags
 
 # Assets
 sass:
@@ -36,3 +37,4 @@ paginate:       20
 
 # Excludes
 exclude: [ Gemfile, Gemfile.lock, tale.gemspec ]
+
