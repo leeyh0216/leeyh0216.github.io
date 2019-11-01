@@ -1,6 +1,6 @@
 # Site settings
-title:          leeyh0216's devlog
-description:    "Minimal Jekyll theme for storytellers"
+title:          DevLog
+description:    "Dev Blog"
 baseurl:        ""
 url:            "https://leeyh0216.github.io"
 
