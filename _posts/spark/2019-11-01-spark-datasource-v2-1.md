@@ -55,6 +55,8 @@ Spark의 RDD API를 사용하던 시절에는 위와 같이 RDD의 mapPartitions
 >
 > 또한 Spark 2.3 버전과 2.4 버전에서 DataSourceV2 API의 인터페이스가 달라졌는데, 이 포스트에서는 2.3 버전 기준으로 설명하도록 한다.
 
+![Spark DataSourceV2 Read Flow](../../assets/spark_datasource_v2_read_flow.png)
+
 ### DataSourceV2(org.apache.spark.sql.sources.v2.DataSourceV2)
 
 {% highlight java %}
