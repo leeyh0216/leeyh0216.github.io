@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Apache Druid - Getting started"
-date:   2019-10-26 22:00:00 +0900
+date:   2019-11-05 19:00:00 +0900
 author: leeyh0216
 tags:
 - apache-druid
