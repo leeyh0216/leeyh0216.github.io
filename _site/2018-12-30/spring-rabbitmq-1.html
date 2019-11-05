@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Spring with RabbitMQ(1) | DevLog</title>
+<meta name="generator" content="Jekyll v3.8.6" />
+<meta property="og:title" content="Spring with RabbitMQ(1)" />
+<meta name="author" content="leeyh0216" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Spring with RabbitMQ Pre Requirements RabbitMQ 3.6 RabbitMQ 설치(Docker) RabbitMQ를 물리 서버에 설치하기 위해서는 Erlang 설치를 선행한 후 RabbitMQ를 설치해야 하지만 테스트 용도이기 때문에 Docker로 설치 진행한다. Docker Hub의 RabbitMQ 페이지를 참고하여 설치. 이미지 Pull docker pull rabbitmq 명령어를 이용하여 이미지 다운로드. 최신 버전이 아닌 3.6 버전을 사용할 예정이므로 docker pull rabbitmq:3.6-management을 통해 pull을 진행한다.(:3.6을 붙이지 않으면 latest가 다운로드 되기 때문에 반드시 버전을 명시, management plugin을 사용하기 위해서는 버전 뒤에 -management suffix를 붙여주어야 한다) leeyh0216@leeyh0216-pc:~$ docker pull rabbitmq:3.6-management 3.6-management: Pulling from library/rabbitmq ...생략 Status: Downloaded newer image for rabbitmq:3.6-management Container 실행 docker run 명령어를 통해 RabbitMQ Container를 실행한다. hostname, port binding은 아래와 같이 구성 hostname: rabbitmq port binding: 5672:5672(rabbitmq 서버), 15672:15672(management plugin web) docker run -d --hostname rabbitmq --p 5672:5672 -p 15672:15672 --name rabbitmq rabbitmq:3.6-management 위 명령어를 실행한 후 docker ps -a를 확인해보면 정상적으로 RabbitMQ Container가 동작 중인 것을 확인할 수 있다. CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES 2e27d8eb1cd3 rabbitmq:3.6-management &quot;docker-entrypoint.s…&quot; 2 minutes ago Up 2 minutes 4369/tcp, 5671/tcp, 0.0.0.0:5672-&gt;5672/tcp, 15671/tcp, 25672/tcp, 0.0.0.0:15672-&gt;15672/tcp rabbitmq Spring Boot RabbitMQ Tutorial Spring Boot RabbitMQ 페이지를 참고하여 진행한다. build.gradle 구성 사용한 의존성은 아래와 같으며, JDK 1.8 기준으로 프로젝트를 생성한다. spring-boot-starter: 1.4.6 spring-boot-starter-web: 1.4.6 spring-boot-starter-amqp: 1.4.6 build.gradle apply plugin: &#39;java&#39; sourceCompatibility = 1.8 targetCompatibility = 1.8 repositories { mavenCentral() } dependencies { compile group: &#39;org.springframework.boot&#39;, name: &#39;spring-boot-starter&#39;, version: &#39;1.4.6.RELEASE&#39; compile group: &#39;org.springframework.boot&#39;, name: &#39;spring-boot-starter-web&#39;, version: &#39;1.4.6.RELEASE&#39; compile group: &#39;org.springframework.boot&#39;, name: &#39;spring-boot-starter-amqp&#39;, version: &#39;1.4.6.RELEASE&#39; testCompile &quot;junit:junit:4.12&quot; } 코드 구성 Spring Boot RabbitMQ Getting Started 페이지의 예제를 약간 변형하여 사용하였다. 아래 4개의 클래스를 구현한다. ReceiverConfiguration : RabbitMQ &lt;-&gt; Spring Boot 간 Connection 설정 및 Receiver 클래스에게 메시지를 전달하기 위한 Listener Container Factory 설정 Receiver : 수신한 메시지를 처리할 클래스 SampleMessage : 메시지 포맷 정의 ReceiverApplication : SpringBoot Application Entry Point ReceiverConfiguration 클래스 package com.leeyh0216.rabbitmq.receiver; import org.springframework.amqp.core.Binding; import org.springframework.amqp.core.BindingBuilder; import org.springframework.amqp.core.Queue; import org.springframework.amqp.core.TopicExchange; import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory; import org.springframework.amqp.rabbit.connection.CachingConnectionFactory; import org.springframework.amqp.rabbit.connection.ConnectionFactory; import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter; import org.springframework.context.annotation.Bean; import org.springframework.context.annotation.Configuration; @Configuration public class ReceiverConfiguration { private static final String RABBITMQ_HOST = &quot;localhost&quot;; private static final int RABBITMQ_PORT = 5672; private static final String USERNAME = &quot;guest&quot;; private static final String PASSWORD = &quot;guest&quot;; private static final String ROUTING_KEY = &quot;test-topic-1.*&quot;; private static final String EXCHANGE_NAME = &quot;test-exchange-1&quot;; private static final String QUEUE_NAME = &quot;test-queue-1&quot;; /** * RabbitMQ Server와의 Connection을 생성하는 Factory 객체를 반환한다. * * @return 초기화된 RabbitMQ ConnectionFactory 객체 */ @Bean public ConnectionFactory getConnectionFactory(){ ConnectionFactory connectionFactory = new CachingConnectionFactory(RABBITMQ_HOST, RABBITMQ_PORT); ((CachingConnectionFactory) connectionFactory).setUsername(USERNAME); ((CachingConnectionFactory) connectionFactory).setPassword(PASSWORD); return connectionFactory; } /** * RabbitMQ에서 사용할 Exchange를 선언하고 반환한다. * Exchange 종류는 Topic 사용 * * @return 초기화된 TopicExchange 객체 */ @Bean public TopicExchange getExchange(){ return new TopicExchange(EXCHANGE_NAME); } /** * RabbitMQ에서 사용할 Queue를 선언하고 반환한다. * * @return 초기화된 Queue 객체 */ @Bean public Queue queue(){ return new Queue(QUEUE_NAME, true); } /** * Exchange와 Queue를 연결하는 Binding 객체를 선언하고 반환한다. * * @param queue 초기화된 Queue * @param exchange 초기화된 TopicExchange * @return Binding 객체 */ @Bean public Binding getBinding(Queue queue, TopicExchange exchange){ return BindingBuilder.bind(queue).to(exchange).with(ROUTING_KEY); } /** * RabbitMQ에서 메시지를 수신할 Listener의 Factory를 선언하고 반환한다. * * @param connectionFactory ConnectionFactory 객체 * @param converter Jackson Converter 객체. byte[] &lt;-&gt; 메시지 간 변환을 담당 * @return 초기화된 Listener Factory 객체 */ @Bean(&quot;SampleContainerFactory&quot;) SimpleRabbitListenerContainerFactory getSampleContainerFactory(ConnectionFactory connectionFactory, Jackson2JsonMessageConverter converter) { SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory(); factory.setConnectionFactory(connectionFactory); factory.setMessageConverter(converter); return factory; } @Bean public Jackson2JsonMessageConverter getMessageConverter() { return new Jackson2JsonMessageConverter(); } } RabbitMQ는 기본 설정 시 아래와 같은 연결 정보를 사용한다. Host: localhost Port: 5672 User: guest Password: guest 기본적인 함수나 객체의 의미는 주석처리하였으며, RabbitMQ 개념을 다음 글에서 정리하고, 이를 다시 Spring boot amqp 와 매핑하는 과정을 그 다음글에서 정리할 예정 Receiver 클래스 package com.leeyh0216.rabbitmq.receiver; import org.slf4j.Logger; import org.slf4j.LoggerFactory; import org.springframework.amqp.rabbit.annotation.RabbitListener; import org.springframework.stereotype.Component; @Component public class Receiver{ private static final Logger logger = LoggerFactory.getLogger(Receiver.class); /** * 메시지 수신 시 처리할 Handler 함수 * @param message RabbitMQ의 test-queue-1으로부터 수신한 메시지 */ @RabbitListener(containerFactory = &quot;SampleContainerFactory&quot;, queues=&quot;test-queue-1&quot;) public void onReceiveMessage(SampleMessage message){ logger.info(&quot;Receiver received message: {}&quot;, message); } } RabbitMQ로부터 메시지를 수신하여 처리할 Handler 함수를 포함하는 클래스이다. SampleMessage 클래스 package com.leeyh0216.rabbitmq.receiver; import com.fasterxml.jackson.databind.ObjectMapper; import java.io.Serializable; public class SampleMessage implements Serializable { private String name; private String content; public String getName() { return name; } public void setName(String name) { this.name = name; } public String getContent() { return content; } public void setContent(String content) { this.content = content; } @Override public String toString(){ try { return new ObjectMapper().writeValueAsString(this); } catch(Exception e){ System.out.println(&quot;err to parsing&quot;); return &quot;&quot;; } } } ReceiverApplication 클래스 package com.leeyh0216.rabbitmq.receiver; import org.springframework.boot.SpringApplication; import org.springframework.boot.autoconfigure.SpringBootApplication; import org.springframework.context.annotation.ComponentScan; @SpringBootApplication @ComponentScan(&quot;com.leeyh0216.rabbitmq.receiver&quot;) public class ReceiverApplication { public static void main(String[] args) throws InterruptedException { SpringApplication.run(ReceiverApplication.class, args); } } 실행해보기 Sender의 경우 구현하지 않고 일단 RabbitMQ Web Management에서 메시지를 보내보기로 했다. Application을 구동하면 아래와 같이 로그에 RabbitMQ 연결 정보와 함께 정상적으로 연결되었다는 메시지가 출력되는 것을 볼 수 있다. . ____ _ __ _ _ /\\ / ___&#39;_ __ _ _(_)_ __ __ _ \ \ \ \ ( ( )\___ | &#39;_ | &#39;_| | &#39;_ \/ _` | \ \ \ \ \\/ ___)| |_)| | | | | || (_| | ) ) ) ) &#39; |____| .__|_| |_|_| |_\__, | / / / / =========|_|==============|___/=/_/_/_/ :: Spring Boot :: (v1.4.6.RELEASE) 2018-12-30 14:27:37.088 INFO 10680 --- [cTaskExecutor-1] o.s.a.r.c.CachingConnectionFactory : Created new connection: SimpleConnection@32b38058 [delegate=amqp://guest@127.0.0.1:5672/, localPort= 50732] 2018-12-30 14:27:37.223 INFO 10680 --- [ main] s.b.c.e.t.TomcatEmbeddedServletContainer : Tomcat started on port(s): 8080 (http) 2018-12-30 14:27:37.230 INFO 10680 --- [ main] c.l.r.receiver.ReceiverApplication : Started ReceiverApplication in 5.807 seconds (JVM running for 6.494) 이제 RabbitMQ Web Management 페이지로 가서 메시지를 보내보도록 하자. 접속은 http://localhost:15672로 할 수 있고, 초기 사용자와 패스워드는 guest, guest이다. 아래와 같이 Exchange에 우리가 선언한 test-exchange-1 Exchange가 생성되어 있는 것을 확인할 수 있다. test-exchange-1을 클릭해보면 아래와 같이 해당 Exchange의 타입(topic)과 Binding을 확인할 수 있다. Queues 페이지를 들어가보면 우리가 선언한 test-queue-1이 생성되어 있는 것을 확인할 수 있다. test-queue-1을 클릭해보면 해당 Queue의 정보 확인, 메시지 송/수신 등 Queue에 대한 기능을 수행할 수 있다. 이제 큐에 메시지를 보내보도록 하자. 아래와 같이 Publish message 탭을 눌러 메시지를 작성한 후 전송해보자. 이 때 properties에는 아래와 같이 content_type을 application/json으로 설정해주어야 한다. 우리가 띄워놓은 Application의 로그를 확인해보면, 아래와 같이 방금 Publish한 메시지의 내용을 출력한 것을 확인할 수 있다. 2018-12-30 14:38:11.986 INFO 10680 --- [cTaskExecutor-1] c.leeyh0216.rabbitmq.receiver.Receiver : Receiver received message: {&quot;name&quot;:&quot;sample-message-1&quot;,&quot;content&quot;:&quot;hello world!&quot;}" />
+<meta property="og:description" content="Spring with RabbitMQ Pre Requirements RabbitMQ 3.6 RabbitMQ 설치(Docker) RabbitMQ를 물리 서버에 설치하기 위해서는 Erlang 설치를 선행한 후 RabbitMQ를 설치해야 하지만 테스트 용도이기 때문에 Docker로 설치 진행한다. Docker Hub의 RabbitMQ 페이지를 참고하여 설치. 이미지 Pull docker pull rabbitmq 명령어를 이용하여 이미지 다운로드. 최신 버전이 아닌 3.6 버전을 사용할 예정이므로 docker pull rabbitmq:3.6-management을 통해 pull을 진행한다.(:3.6을 붙이지 않으면 latest가 다운로드 되기 때문에 반드시 버전을 명시, management plugin을 사용하기 위해서는 버전 뒤에 -management suffix를 붙여주어야 한다) leeyh0216@leeyh0216-pc:~$ docker pull rabbitmq:3.6-management 3.6-management: Pulling from library/rabbitmq ...생략 Status: Downloaded newer image for rabbitmq:3.6-management Container 실행 docker run 명령어를 통해 RabbitMQ Container를 실행한다. hostname, port binding은 아래와 같이 구성 hostname: rabbitmq port binding: 5672:5672(rabbitmq 서버), 15672:15672(management plugin web) docker run -d --hostname rabbitmq --p 5672:5672 -p 15672:15672 --name rabbitmq rabbitmq:3.6-management 위 명령어를 실행한 후 docker ps -a를 확인해보면 정상적으로 RabbitMQ Container가 동작 중인 것을 확인할 수 있다. CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES 2e27d8eb1cd3 rabbitmq:3.6-management &quot;docker-entrypoint.s…&quot; 2 minutes ago Up 2 minutes 4369/tcp, 5671/tcp, 0.0.0.0:5672-&gt;5672/tcp, 15671/tcp, 25672/tcp, 0.0.0.0:15672-&gt;15672/tcp rabbitmq Spring Boot RabbitMQ Tutorial Spring Boot RabbitMQ 페이지를 참고하여 진행한다. build.gradle 구성 사용한 의존성은 아래와 같으며, JDK 1.8 기준으로 프로젝트를 생성한다. spring-boot-starter: 1.4.6 spring-boot-starter-web: 1.4.6 spring-boot-starter-amqp: 1.4.6 build.gradle apply plugin: &#39;java&#39; sourceCompatibility = 1.8 targetCompatibility = 1.8 repositories { mavenCentral() } dependencies { compile group: &#39;org.springframework.boot&#39;, name: &#39;spring-boot-starter&#39;, version: &#39;1.4.6.RELEASE&#39; compile group: &#39;org.springframework.boot&#39;, name: &#39;spring-boot-starter-web&#39;, version: &#39;1.4.6.RELEASE&#39; compile group: &#39;org.springframework.boot&#39;, name: &#39;spring-boot-starter-amqp&#39;, version: &#39;1.4.6.RELEASE&#39; testCompile &quot;junit:junit:4.12&quot; } 코드 구성 Spring Boot RabbitMQ Getting Started 페이지의 예제를 약간 변형하여 사용하였다. 아래 4개의 클래스를 구현한다. ReceiverConfiguration : RabbitMQ &lt;-&gt; Spring Boot 간 Connection 설정 및 Receiver 클래스에게 메시지를 전달하기 위한 Listener Container Factory 설정 Receiver : 수신한 메시지를 처리할 클래스 SampleMessage : 메시지 포맷 정의 ReceiverApplication : SpringBoot Application Entry Point ReceiverConfiguration 클래스 package com.leeyh0216.rabbitmq.receiver; import org.springframework.amqp.core.Binding; import org.springframework.amqp.core.BindingBuilder; import org.springframework.amqp.core.Queue; import org.springframework.amqp.core.TopicExchange; import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory; import org.springframework.amqp.rabbit.connection.CachingConnectionFactory; import org.springframework.amqp.rabbit.connection.ConnectionFactory; import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter; import org.springframework.context.annotation.Bean; import org.springframework.context.annotation.Configuration; @Configuration public class ReceiverConfiguration { private static final String RABBITMQ_HOST = &quot;localhost&quot;; private static final int RABBITMQ_PORT = 5672; private static final String USERNAME = &quot;guest&quot;; private static final String PASSWORD = &quot;guest&quot;; private static final String ROUTING_KEY = &quot;test-topic-1.*&quot;; private static final String EXCHANGE_NAME = &quot;test-exchange-1&quot;; private static final String QUEUE_NAME = &quot;test-queue-1&quot;; /** * RabbitMQ Server와의 Connection을 생성하는 Factory 객체를 반환한다. * * @return 초기화된 RabbitMQ ConnectionFactory 객체 */ @Bean public ConnectionFactory getConnectionFactory(){ ConnectionFactory connectionFactory = new CachingConnectionFactory(RABBITMQ_HOST, RABBITMQ_PORT); ((CachingConnectionFactory) connectionFactory).setUsername(USERNAME); ((CachingConnectionFactory) connectionFactory).setPassword(PASSWORD); return connectionFactory; } /** * RabbitMQ에서 사용할 Exchange를 선언하고 반환한다. * Exchange 종류는 Topic 사용 * * @return 초기화된 TopicExchange 객체 */ @Bean public TopicExchange getExchange(){ return new TopicExchange(EXCHANGE_NAME); } /** * RabbitMQ에서 사용할 Queue를 선언하고 반환한다. * * @return 초기화된 Queue 객체 */ @Bean public Queue queue(){ return new Queue(QUEUE_NAME, true); } /** * Exchange와 Queue를 연결하는 Binding 객체를 선언하고 반환한다. * * @param queue 초기화된 Queue * @param exchange 초기화된 TopicExchange * @return Binding 객체 */ @Bean public Binding getBinding(Queue queue, TopicExchange exchange){ return BindingBuilder.bind(queue).to(exchange).with(ROUTING_KEY); } /** * RabbitMQ에서 메시지를 수신할 Listener의 Factory를 선언하고 반환한다. * * @param connectionFactory ConnectionFactory 객체 * @param converter Jackson Converter 객체. byte[] &lt;-&gt; 메시지 간 변환을 담당 * @return 초기화된 Listener Factory 객체 */ @Bean(&quot;SampleContainerFactory&quot;) SimpleRabbitListenerContainerFactory getSampleContainerFactory(ConnectionFactory connectionFactory, Jackson2JsonMessageConverter converter) { SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory(); factory.setConnectionFactory(connectionFactory); factory.setMessageConverter(converter); return factory; } @Bean public Jackson2JsonMessageConverter getMessageConverter() { return new Jackson2JsonMessageConverter(); } } RabbitMQ는 기본 설정 시 아래와 같은 연결 정보를 사용한다. Host: localhost Port: 5672 User: guest Password: guest 기본적인 함수나 객체의 의미는 주석처리하였으며, RabbitMQ 개념을 다음 글에서 정리하고, 이를 다시 Spring boot amqp 와 매핑하는 과정을 그 다음글에서 정리할 예정 Receiver 클래스 package com.leeyh0216.rabbitmq.receiver; import org.slf4j.Logger; import org.slf4j.LoggerFactory; import org.springframework.amqp.rabbit.annotation.RabbitListener; import org.springframework.stereotype.Component; @Component public class Receiver{ private static final Logger logger = LoggerFactory.getLogger(Receiver.class); /** * 메시지 수신 시 처리할 Handler 함수 * @param message RabbitMQ의 test-queue-1으로부터 수신한 메시지 */ @RabbitListener(containerFactory = &quot;SampleContainerFactory&quot;, queues=&quot;test-queue-1&quot;) public void onReceiveMessage(SampleMessage message){ logger.info(&quot;Receiver received message: {}&quot;, message); } } RabbitMQ로부터 메시지를 수신하여 처리할 Handler 함수를 포함하는 클래스이다. SampleMessage 클래스 package com.leeyh0216.rabbitmq.receiver; import com.fasterxml.jackson.databind.ObjectMapper; import java.io.Serializable; public class SampleMessage implements Serializable { private String name; private String content; public String getName() { return name; } public void setName(String name) { this.name = name; } public String getContent() { return content; } public void setContent(String content) { this.content = content; } @Override public String toString(){ try { return new ObjectMapper().writeValueAsString(this); } catch(Exception e){ System.out.println(&quot;err to parsing&quot;); return &quot;&quot;; } } } ReceiverApplication 클래스 package com.leeyh0216.rabbitmq.receiver; import org.springframework.boot.SpringApplication; import org.springframework.boot.autoconfigure.SpringBootApplication; import org.springframework.context.annotation.ComponentScan; @SpringBootApplication @ComponentScan(&quot;com.leeyh0216.rabbitmq.receiver&quot;) public class ReceiverApplication { public static void main(String[] args) throws InterruptedException { SpringApplication.run(ReceiverApplication.class, args); } } 실행해보기 Sender의 경우 구현하지 않고 일단 RabbitMQ Web Management에서 메시지를 보내보기로 했다. Application을 구동하면 아래와 같이 로그에 RabbitMQ 연결 정보와 함께 정상적으로 연결되었다는 메시지가 출력되는 것을 볼 수 있다. . ____ _ __ _ _ /\\ / ___&#39;_ __ _ _(_)_ __ __ _ \ \ \ \ ( ( )\___ | &#39;_ | &#39;_| | &#39;_ \/ _` | \ \ \ \ \\/ ___)| |_)| | | | | || (_| | ) ) ) ) &#39; |____| .__|_| |_|_| |_\__, | / / / / =========|_|==============|___/=/_/_/_/ :: Spring Boot :: (v1.4.6.RELEASE) 2018-12-30 14:27:37.088 INFO 10680 --- [cTaskExecutor-1] o.s.a.r.c.CachingConnectionFactory : Created new connection: SimpleConnection@32b38058 [delegate=amqp://guest@127.0.0.1:5672/, localPort= 50732] 2018-12-30 14:27:37.223 INFO 10680 --- [ main] s.b.c.e.t.TomcatEmbeddedServletContainer : Tomcat started on port(s): 8080 (http) 2018-12-30 14:27:37.230 INFO 10680 --- [ main] c.l.r.receiver.ReceiverApplication : Started ReceiverApplication in 5.807 seconds (JVM running for 6.494) 이제 RabbitMQ Web Management 페이지로 가서 메시지를 보내보도록 하자. 접속은 http://localhost:15672로 할 수 있고, 초기 사용자와 패스워드는 guest, guest이다. 아래와 같이 Exchange에 우리가 선언한 test-exchange-1 Exchange가 생성되어 있는 것을 확인할 수 있다. test-exchange-1을 클릭해보면 아래와 같이 해당 Exchange의 타입(topic)과 Binding을 확인할 수 있다. Queues 페이지를 들어가보면 우리가 선언한 test-queue-1이 생성되어 있는 것을 확인할 수 있다. test-queue-1을 클릭해보면 해당 Queue의 정보 확인, 메시지 송/수신 등 Queue에 대한 기능을 수행할 수 있다. 이제 큐에 메시지를 보내보도록 하자. 아래와 같이 Publish message 탭을 눌러 메시지를 작성한 후 전송해보자. 이 때 properties에는 아래와 같이 content_type을 application/json으로 설정해주어야 한다. 우리가 띄워놓은 Application의 로그를 확인해보면, 아래와 같이 방금 Publish한 메시지의 내용을 출력한 것을 확인할 수 있다. 2018-12-30 14:38:11.986 INFO 10680 --- [cTaskExecutor-1] c.leeyh0216.rabbitmq.receiver.Receiver : Receiver received message: {&quot;name&quot;:&quot;sample-message-1&quot;,&quot;content&quot;:&quot;hello world!&quot;}" />
+<link rel="canonical" href="https://leeyh0216.github.io/2018-12-30/spring-rabbitmq-1" />
+<meta property="og:url" content="https://leeyh0216.github.io/2018-12-30/spring-rabbitmq-1" />
+<meta property="og:site_name" content="DevLog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2018-12-30T10:00:00+09:00" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"leeyh0216"},"url":"https://leeyh0216.github.io/2018-12-30/spring-rabbitmq-1","mainEntityOfPage":{"@type":"WebPage","@id":"https://leeyh0216.github.io/2018-12-30/spring-rabbitmq-1"},"headline":"Spring with RabbitMQ(1)","dateModified":"2018-12-30T10:00:00+09:00","datePublished":"2018-12-30T10:00:00+09:00","description":"Spring with RabbitMQ Pre Requirements RabbitMQ 3.6 RabbitMQ 설치(Docker) RabbitMQ를 물리 서버에 설치하기 위해서는 Erlang 설치를 선행한 후 RabbitMQ를 설치해야 하지만 테스트 용도이기 때문에 Docker로 설치 진행한다. Docker Hub의 RabbitMQ 페이지를 참고하여 설치. 이미지 Pull docker pull rabbitmq 명령어를 이용하여 이미지 다운로드. 최신 버전이 아닌 3.6 버전을 사용할 예정이므로 docker pull rabbitmq:3.6-management을 통해 pull을 진행한다.(:3.6을 붙이지 않으면 latest가 다운로드 되기 때문에 반드시 버전을 명시, management plugin을 사용하기 위해서는 버전 뒤에 -management suffix를 붙여주어야 한다) leeyh0216@leeyh0216-pc:~$ docker pull rabbitmq:3.6-management 3.6-management: Pulling from library/rabbitmq ...생략 Status: Downloaded newer image for rabbitmq:3.6-management Container 실행 docker run 명령어를 통해 RabbitMQ Container를 실행한다. hostname, port binding은 아래와 같이 구성 hostname: rabbitmq port binding: 5672:5672(rabbitmq 서버), 15672:15672(management plugin web) docker run -d --hostname rabbitmq --p 5672:5672 -p 15672:15672 --name rabbitmq rabbitmq:3.6-management 위 명령어를 실행한 후 docker ps -a를 확인해보면 정상적으로 RabbitMQ Container가 동작 중인 것을 확인할 수 있다. CONTAINER ID IMAGE COMMAND CREATED STATUS PORTS NAMES 2e27d8eb1cd3 rabbitmq:3.6-management &quot;docker-entrypoint.s…&quot; 2 minutes ago Up 2 minutes 4369/tcp, 5671/tcp, 0.0.0.0:5672-&gt;5672/tcp, 15671/tcp, 25672/tcp, 0.0.0.0:15672-&gt;15672/tcp rabbitmq Spring Boot RabbitMQ Tutorial Spring Boot RabbitMQ 페이지를 참고하여 진행한다. build.gradle 구성 사용한 의존성은 아래와 같으며, JDK 1.8 기준으로 프로젝트를 생성한다. spring-boot-starter: 1.4.6 spring-boot-starter-web: 1.4.6 spring-boot-starter-amqp: 1.4.6 build.gradle apply plugin: &#39;java&#39; sourceCompatibility = 1.8 targetCompatibility = 1.8 repositories { mavenCentral() } dependencies { compile group: &#39;org.springframework.boot&#39;, name: &#39;spring-boot-starter&#39;, version: &#39;1.4.6.RELEASE&#39; compile group: &#39;org.springframework.boot&#39;, name: &#39;spring-boot-starter-web&#39;, version: &#39;1.4.6.RELEASE&#39; compile group: &#39;org.springframework.boot&#39;, name: &#39;spring-boot-starter-amqp&#39;, version: &#39;1.4.6.RELEASE&#39; testCompile &quot;junit:junit:4.12&quot; } 코드 구성 Spring Boot RabbitMQ Getting Started 페이지의 예제를 약간 변형하여 사용하였다. 아래 4개의 클래스를 구현한다. ReceiverConfiguration : RabbitMQ &lt;-&gt; Spring Boot 간 Connection 설정 및 Receiver 클래스에게 메시지를 전달하기 위한 Listener Container Factory 설정 Receiver : 수신한 메시지를 처리할 클래스 SampleMessage : 메시지 포맷 정의 ReceiverApplication : SpringBoot Application Entry Point ReceiverConfiguration 클래스 package com.leeyh0216.rabbitmq.receiver; import org.springframework.amqp.core.Binding; import org.springframework.amqp.core.BindingBuilder; import org.springframework.amqp.core.Queue; import org.springframework.amqp.core.TopicExchange; import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory; import org.springframework.amqp.rabbit.connection.CachingConnectionFactory; import org.springframework.amqp.rabbit.connection.ConnectionFactory; import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter; import org.springframework.context.annotation.Bean; import org.springframework.context.annotation.Configuration; @Configuration public class ReceiverConfiguration { private static final String RABBITMQ_HOST = &quot;localhost&quot;; private static final int RABBITMQ_PORT = 5672; private static final String USERNAME = &quot;guest&quot;; private static final String PASSWORD = &quot;guest&quot;; private static final String ROUTING_KEY = &quot;test-topic-1.*&quot;; private static final String EXCHANGE_NAME = &quot;test-exchange-1&quot;; private static final String QUEUE_NAME = &quot;test-queue-1&quot;; /** * RabbitMQ Server와의 Connection을 생성하는 Factory 객체를 반환한다. * * @return 초기화된 RabbitMQ ConnectionFactory 객체 */ @Bean public ConnectionFactory getConnectionFactory(){ ConnectionFactory connectionFactory = new CachingConnectionFactory(RABBITMQ_HOST, RABBITMQ_PORT); ((CachingConnectionFactory) connectionFactory).setUsername(USERNAME); ((CachingConnectionFactory) connectionFactory).setPassword(PASSWORD); return connectionFactory; } /** * RabbitMQ에서 사용할 Exchange를 선언하고 반환한다. * Exchange 종류는 Topic 사용 * * @return 초기화된 TopicExchange 객체 */ @Bean public TopicExchange getExchange(){ return new TopicExchange(EXCHANGE_NAME); } /** * RabbitMQ에서 사용할 Queue를 선언하고 반환한다. * * @return 초기화된 Queue 객체 */ @Bean public Queue queue(){ return new Queue(QUEUE_NAME, true); } /** * Exchange와 Queue를 연결하는 Binding 객체를 선언하고 반환한다. * * @param queue 초기화된 Queue * @param exchange 초기화된 TopicExchange * @return Binding 객체 */ @Bean public Binding getBinding(Queue queue, TopicExchange exchange){ return BindingBuilder.bind(queue).to(exchange).with(ROUTING_KEY); } /** * RabbitMQ에서 메시지를 수신할 Listener의 Factory를 선언하고 반환한다. * * @param connectionFactory ConnectionFactory 객체 * @param converter Jackson Converter 객체. byte[] &lt;-&gt; 메시지 간 변환을 담당 * @return 초기화된 Listener Factory 객체 */ @Bean(&quot;SampleContainerFactory&quot;) SimpleRabbitListenerContainerFactory getSampleContainerFactory(ConnectionFactory connectionFactory, Jackson2JsonMessageConverter converter) { SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory(); factory.setConnectionFactory(connectionFactory); factory.setMessageConverter(converter); return factory; } @Bean public Jackson2JsonMessageConverter getMessageConverter() { return new Jackson2JsonMessageConverter(); } } RabbitMQ는 기본 설정 시 아래와 같은 연결 정보를 사용한다. Host: localhost Port: 5672 User: guest Password: guest 기본적인 함수나 객체의 의미는 주석처리하였으며, RabbitMQ 개념을 다음 글에서 정리하고, 이를 다시 Spring boot amqp 와 매핑하는 과정을 그 다음글에서 정리할 예정 Receiver 클래스 package com.leeyh0216.rabbitmq.receiver; import org.slf4j.Logger; import org.slf4j.LoggerFactory; import org.springframework.amqp.rabbit.annotation.RabbitListener; import org.springframework.stereotype.Component; @Component public class Receiver{ private static final Logger logger = LoggerFactory.getLogger(Receiver.class); /** * 메시지 수신 시 처리할 Handler 함수 * @param message RabbitMQ의 test-queue-1으로부터 수신한 메시지 */ @RabbitListener(containerFactory = &quot;SampleContainerFactory&quot;, queues=&quot;test-queue-1&quot;) public void onReceiveMessage(SampleMessage message){ logger.info(&quot;Receiver received message: {}&quot;, message); } } RabbitMQ로부터 메시지를 수신하여 처리할 Handler 함수를 포함하는 클래스이다. SampleMessage 클래스 package com.leeyh0216.rabbitmq.receiver; import com.fasterxml.jackson.databind.ObjectMapper; import java.io.Serializable; public class SampleMessage implements Serializable { private String name; private String content; public String getName() { return name; } public void setName(String name) { this.name = name; } public String getContent() { return content; } public void setContent(String content) { this.content = content; } @Override public String toString(){ try { return new ObjectMapper().writeValueAsString(this); } catch(Exception e){ System.out.println(&quot;err to parsing&quot;); return &quot;&quot;; } } } ReceiverApplication 클래스 package com.leeyh0216.rabbitmq.receiver; import org.springframework.boot.SpringApplication; import org.springframework.boot.autoconfigure.SpringBootApplication; import org.springframework.context.annotation.ComponentScan; @SpringBootApplication @ComponentScan(&quot;com.leeyh0216.rabbitmq.receiver&quot;) public class ReceiverApplication { public static void main(String[] args) throws InterruptedException { SpringApplication.run(ReceiverApplication.class, args); } } 실행해보기 Sender의 경우 구현하지 않고 일단 RabbitMQ Web Management에서 메시지를 보내보기로 했다. Application을 구동하면 아래와 같이 로그에 RabbitMQ 연결 정보와 함께 정상적으로 연결되었다는 메시지가 출력되는 것을 볼 수 있다. . ____ _ __ _ _ /\\\\ / ___&#39;_ __ _ _(_)_ __ __ _ \\ \\ \\ \\ ( ( )\\___ | &#39;_ | &#39;_| | &#39;_ \\/ _` | \\ \\ \\ \\ \\\\/ ___)| |_)| | | | | || (_| | ) ) ) ) &#39; |____| .__|_| |_|_| |_\\__, | / / / / =========|_|==============|___/=/_/_/_/ :: Spring Boot :: (v1.4.6.RELEASE) 2018-12-30 14:27:37.088 INFO 10680 --- [cTaskExecutor-1] o.s.a.r.c.CachingConnectionFactory : Created new connection: SimpleConnection@32b38058 [delegate=amqp://guest@127.0.0.1:5672/, localPort= 50732] 2018-12-30 14:27:37.223 INFO 10680 --- [ main] s.b.c.e.t.TomcatEmbeddedServletContainer : Tomcat started on port(s): 8080 (http) 2018-12-30 14:27:37.230 INFO 10680 --- [ main] c.l.r.receiver.ReceiverApplication : Started ReceiverApplication in 5.807 seconds (JVM running for 6.494) 이제 RabbitMQ Web Management 페이지로 가서 메시지를 보내보도록 하자. 접속은 http://localhost:15672로 할 수 있고, 초기 사용자와 패스워드는 guest, guest이다. 아래와 같이 Exchange에 우리가 선언한 test-exchange-1 Exchange가 생성되어 있는 것을 확인할 수 있다. test-exchange-1을 클릭해보면 아래와 같이 해당 Exchange의 타입(topic)과 Binding을 확인할 수 있다. Queues 페이지를 들어가보면 우리가 선언한 test-queue-1이 생성되어 있는 것을 확인할 수 있다. test-queue-1을 클릭해보면 해당 Queue의 정보 확인, 메시지 송/수신 등 Queue에 대한 기능을 수행할 수 있다. 이제 큐에 메시지를 보내보도록 하자. 아래와 같이 Publish message 탭을 눌러 메시지를 작성한 후 전송해보자. 이 때 properties에는 아래와 같이 content_type을 application/json으로 설정해주어야 한다. 우리가 띄워놓은 Application의 로그를 확인해보면, 아래와 같이 방금 Publish한 메시지의 내용을 출력한 것을 확인할 수 있다. 2018-12-30 14:38:11.986 INFO 10680 --- [cTaskExecutor-1] c.leeyh0216.rabbitmq.receiver.Receiver : Receiver received message: {&quot;name&quot;:&quot;sample-message-1&quot;,&quot;content&quot;:&quot;hello world!&quot;}","@type":"BlogPosting","@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Libre+Baskerville:400,400i,700">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+
+  <!-- RSS -->
+  <link type="application/atom+xml" rel="alternate" href="https://leeyh0216.github.io/feed.xml" title="DevLog" />
+
+  <!-- Google Analytics-->
+  <script data-ad-client="ca-pub-8829030678254956" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+</head>
+
+
+  <body>
+
+    <nav class="nav">
+  <div class="nav-container">
+    <a href="/">
+      <h2 class="nav-title">DevLog</h2>
+    </a>
+    <ul>
+      <li><a href="/about">About</a></li>
+      <li><a href="/">Posts</a></li>
+      <li><a href="/tags">Tags</a></li>
+    </ul>
+  </div>
+</nav>
+
+
+    <main>
+      <div class="post">
+  <div class="post-info">
+    <span>Written by</span>
+    
+        leeyh0216
+    
+
+    
+      <br>
+      <span>on&nbsp;</span><time datetime="2018-12-30 10:00:00 +0900">December 30, 2018</time>
+    
+    
+    
+      <br>
+      <span>
+      
+        
+        <a style="text-decoration: none;" href="/tag/spring"><code class="highligher-rouge"><nobr>spring</nobr></code>&nbsp;</a>
+      
+        
+        <a style="text-decoration: none;" href="/tag/rabbitmq"><code class="highligher-rouge"><nobr>rabbitmq</nobr></code>&nbsp;</a>
+      
+      </span>
+    
+  </span>
+  </div>
+
+  <h1 class="post-title">Spring with RabbitMQ(1)</h1>
+  <div class="post-line"></div>
+
+  <h1 id="spring-with-rabbitmq">Spring with RabbitMQ</h1>
+
+<h2 id="pre-requirements">Pre Requirements</h2>
+
+<ul>
+  <li>RabbitMQ 3.6</li>
+</ul>
+
+<h3 id="rabbitmq-설치docker">RabbitMQ 설치(Docker)</h3>
+
+<p>RabbitMQ를 물리 서버에 설치하기 위해서는 Erlang 설치를 선행한 후 RabbitMQ를 설치해야 하지만 테스트 용도이기 때문에 Docker로 설치 진행한다.</p>
+
+<p><a href="https://hub.docker.com/_/rabbitmq/">Docker Hub의 RabbitMQ 페이지</a>를 참고하여 설치.</p>
+
+<h4 id="이미지-pull">이미지 Pull</h4>
+
+<p><code class="highlighter-rouge">docker pull rabbitmq</code> 명령어를 이용하여 이미지 다운로드. 최신 버전이 아닌 3.6 버전을 사용할 예정이므로 <code class="highlighter-rouge">docker pull rabbitmq:3.6-management</code>을 통해 pull을 진행한다.(:3.6을 붙이지 않으면 latest가 다운로드 되기 때문에 반드시 버전을 명시, management plugin을 사용하기 위해서는 버전 뒤에 -management suffix를 붙여주어야 한다)</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash">leeyh0216@leeyh0216-pc:~<span class="nv">$ </span>docker pull rabbitmq:3.6-management
+3.6-management: Pulling from library/rabbitmq
+...생략
+Status: Downloaded newer image <span class="k">for </span>rabbitmq:3.6-management
+ </code></pre></figure>
+
+<h4 id="container-실행">Container 실행</h4>
+
+<p><code class="highlighter-rouge">docker run</code> 명령어를 통해 RabbitMQ Container를 실행한다. hostname, port binding은 아래와 같이 구성</p>
+
+<ul>
+  <li>hostname: rabbitmq</li>
+  <li>port binding: 5672:5672(rabbitmq 서버), 15672:15672(management plugin web)</li>
+</ul>
+
+<p><code class="highlighter-rouge">docker run -d --hostname rabbitmq --p 5672:5672 -p 15672:15672 --name rabbitmq rabbitmq:3.6-management</code></p>
+
+<p>위 명령어를 실행한 후 <code class="highlighter-rouge">docker ps -a</code>를 확인해보면 정상적으로 RabbitMQ Container가 동작 중인 것을 확인할 수 있다.</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash"> CONTAINER ID        IMAGE                     COMMAND                  CREATED             STATUS                     PORTS                                                                                        NAMES
+2e27d8eb1cd3        rabbitmq:3.6-management   <span class="s2">"docker-entrypoint.s…"</span>   2 minutes ago       Up 2 minutes               4369/tcp, 5671/tcp, 0.0.0.0:5672-&gt;5672/tcp, 15671/tcp, 25672/tcp, 0.0.0.0:15672-&gt;15672/tcp   rabbitmq</code></pre></figure>
+
+<h2 id="spring-boot-rabbitmq-tutorial">Spring Boot RabbitMQ Tutorial</h2>
+
+<p><a href="https://spring.io/guides/gs/messaging-rabbitmq/">Spring Boot RabbitMQ</a> 페이지를 참고하여 진행한다.</p>
+
+<h3 id="buildgradle-구성">build.gradle 구성</h3>
+
+<p>사용한 의존성은 아래와 같으며, JDK 1.8 기준으로 프로젝트를 생성한다.</p>
+
+<ul>
+  <li>spring-boot-starter: 1.4.6</li>
+  <li>spring-boot-starter-web: 1.4.6</li>
+  <li>spring-boot-starter-amqp: 1.4.6</li>
+</ul>
+
+<h4 id="buildgradle">build.gradle</h4>
+
+<figure class="highlight"><pre><code class="language-groovy" data-lang="groovy"><span class="n">apply</span> <span class="nl">plugin:</span> <span class="s1">'java'</span>
+
+<span class="n">sourceCompatibility</span> <span class="o">=</span> <span class="mf">1.8</span>
+<span class="n">targetCompatibility</span> <span class="o">=</span> <span class="mf">1.8</span>
+
+<span class="n">repositories</span> <span class="o">{</span>
+    <span class="n">mavenCentral</span><span class="o">()</span>
+<span class="o">}</span>
+
+<span class="n">dependencies</span> <span class="o">{</span>
+    <span class="n">compile</span> <span class="nl">group:</span> <span class="s1">'org.springframework.boot'</span><span class="o">,</span> <span class="nl">name:</span> <span class="s1">'spring-boot-starter'</span><span class="o">,</span> <span class="nl">version:</span> <span class="s1">'1.4.6.RELEASE'</span>
+    <span class="n">compile</span> <span class="nl">group:</span> <span class="s1">'org.springframework.boot'</span><span class="o">,</span> <span class="nl">name:</span> <span class="s1">'spring-boot-starter-web'</span><span class="o">,</span> <span class="nl">version:</span> <span class="s1">'1.4.6.RELEASE'</span>
+    <span class="n">compile</span> <span class="nl">group:</span> <span class="s1">'org.springframework.boot'</span><span class="o">,</span> <span class="nl">name:</span> <span class="s1">'spring-boot-starter-amqp'</span><span class="o">,</span> <span class="nl">version:</span> <span class="s1">'1.4.6.RELEASE'</span>
+    
+    <span class="n">testCompile</span> <span class="s2">"junit:junit:4.12"</span>
+<span class="o">}</span></code></pre></figure>
+
+<h3 id="코드-구성">코드 구성</h3>
+
+<p>Spring Boot RabbitMQ Getting Started 페이지의 예제를 약간 변형하여 사용하였다.</p>
+
+<p>아래 4개의 클래스를 구현한다.</p>
+
+<ul>
+  <li><code class="highlighter-rouge">ReceiverConfiguration</code> : RabbitMQ &lt;-&gt; Spring Boot 간 Connection 설정 및 Receiver 클래스에게 메시지를 전달하기 위한 Listener Container Factory 설정</li>
+  <li><code class="highlighter-rouge">Receiver</code> : 수신한 메시지를 처리할 클래스</li>
+  <li><code class="highlighter-rouge">SampleMessage</code> : 메시지 포맷 정의</li>
+  <li><code class="highlighter-rouge">ReceiverApplication</code> : SpringBoot Application Entry Point</li>
+</ul>
+
+<h4 id="receiverconfiguration-클래스"><code class="highlighter-rouge">ReceiverConfiguration</code> 클래스</h4>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kn">package</span> <span class="n">com</span><span class="o">.</span><span class="na">leeyh0216</span><span class="o">.</span><span class="na">rabbitmq</span><span class="o">.</span><span class="na">receiver</span><span class="o">;</span>
+
+
+<span class="kn">import</span> <span class="nn">org.springframework.amqp.core.Binding</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.amqp.core.BindingBuilder</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.amqp.core.Queue</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.amqp.core.TopicExchange</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.amqp.rabbit.connection.CachingConnectionFactory</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.amqp.rabbit.connection.ConnectionFactory</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.amqp.support.converter.Jackson2JsonMessageConverter</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.context.annotation.Bean</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.context.annotation.Configuration</span><span class="o">;</span>
+
+<span class="nd">@Configuration</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">ReceiverConfiguration</span> <span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">RABBITMQ_HOST</span> <span class="o">=</span> <span class="s">"localhost"</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="kt">int</span> <span class="no">RABBITMQ_PORT</span> <span class="o">=</span> <span class="mi">5672</span><span class="o">;</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">USERNAME</span> <span class="o">=</span> <span class="s">"guest"</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">PASSWORD</span> <span class="o">=</span> <span class="s">"guest"</span><span class="o">;</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">ROUTING_KEY</span> <span class="o">=</span> <span class="s">"test-topic-1.*"</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">EXCHANGE_NAME</span> <span class="o">=</span> <span class="s">"test-exchange-1"</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">String</span> <span class="no">QUEUE_NAME</span> <span class="o">=</span> <span class="s">"test-queue-1"</span><span class="o">;</span>
+
+    <span class="cm">/**
+     * RabbitMQ Server와의 Connection을 생성하는 Factory 객체를 반환한다.
+     *
+     * @return 초기화된 RabbitMQ ConnectionFactory 객체
+     */</span>
+    <span class="nd">@Bean</span>
+    <span class="kd">public</span> <span class="nc">ConnectionFactory</span> <span class="nf">getConnectionFactory</span><span class="o">(){</span>
+        <span class="nc">ConnectionFactory</span> <span class="n">connectionFactory</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">CachingConnectionFactory</span><span class="o">(</span><span class="no">RABBITMQ_HOST</span><span class="o">,</span> <span class="no">RABBITMQ_PORT</span><span class="o">);</span>
+        <span class="o">((</span><span class="nc">CachingConnectionFactory</span><span class="o">)</span> <span class="n">connectionFactory</span><span class="o">).</span><span class="na">setUsername</span><span class="o">(</span><span class="no">USERNAME</span><span class="o">);</span>
+        <span class="o">((</span><span class="nc">CachingConnectionFactory</span><span class="o">)</span> <span class="n">connectionFactory</span><span class="o">).</span><span class="na">setPassword</span><span class="o">(</span><span class="no">PASSWORD</span><span class="o">);</span>
+        <span class="k">return</span> <span class="n">connectionFactory</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="cm">/**
+     * RabbitMQ에서 사용할 Exchange를 선언하고 반환한다.
+     * Exchange 종류는 Topic 사용
+     *
+     * @return 초기화된 TopicExchange 객체
+     */</span>
+    <span class="nd">@Bean</span>
+    <span class="kd">public</span> <span class="nc">TopicExchange</span> <span class="nf">getExchange</span><span class="o">(){</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nf">TopicExchange</span><span class="o">(</span><span class="no">EXCHANGE_NAME</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="cm">/**
+     * RabbitMQ에서 사용할 Queue를 선언하고 반환한다.
+     *
+     * @return 초기화된 Queue 객체
+     */</span>
+    <span class="nd">@Bean</span>
+    <span class="kd">public</span> <span class="nc">Queue</span> <span class="nf">queue</span><span class="o">(){</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nf">Queue</span><span class="o">(</span><span class="no">QUEUE_NAME</span><span class="o">,</span> <span class="kc">true</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="cm">/**
+     * Exchange와 Queue를 연결하는 Binding 객체를 선언하고 반환한다.
+     *
+     * @param queue 초기화된 Queue
+     * @param exchange 초기화된 TopicExchange
+     * @return Binding 객체
+     */</span>
+    <span class="nd">@Bean</span>
+    <span class="kd">public</span> <span class="nc">Binding</span> <span class="nf">getBinding</span><span class="o">(</span><span class="nc">Queue</span> <span class="n">queue</span><span class="o">,</span> <span class="nc">TopicExchange</span> <span class="n">exchange</span><span class="o">){</span>
+        <span class="k">return</span> <span class="nc">BindingBuilder</span><span class="o">.</span><span class="na">bind</span><span class="o">(</span><span class="n">queue</span><span class="o">).</span><span class="na">to</span><span class="o">(</span><span class="n">exchange</span><span class="o">).</span><span class="na">with</span><span class="o">(</span><span class="no">ROUTING_KEY</span><span class="o">);</span>
+    <span class="o">}</span>
+
+    <span class="cm">/**
+     * RabbitMQ에서 메시지를 수신할 Listener의 Factory를 선언하고 반환한다.
+     *
+     * @param connectionFactory ConnectionFactory 객체
+     * @param converter Jackson Converter 객체. byte[] &lt;-&gt; 메시지 간 변환을 담당
+     * @return 초기화된 Listener Factory 객체
+     */</span>
+    <span class="nd">@Bean</span><span class="o">(</span><span class="s">"SampleContainerFactory"</span><span class="o">)</span>
+    <span class="nc">SimpleRabbitListenerContainerFactory</span> <span class="nf">getSampleContainerFactory</span><span class="o">(</span><span class="nc">ConnectionFactory</span> <span class="n">connectionFactory</span><span class="o">,</span> <span class="nc">Jackson2JsonMessageConverter</span> <span class="n">converter</span><span class="o">)</span> <span class="o">{</span>
+        <span class="nc">SimpleRabbitListenerContainerFactory</span> <span class="n">factory</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">SimpleRabbitListenerContainerFactory</span><span class="o">();</span>
+        <span class="n">factory</span><span class="o">.</span><span class="na">setConnectionFactory</span><span class="o">(</span><span class="n">connectionFactory</span><span class="o">);</span>
+        <span class="n">factory</span><span class="o">.</span><span class="na">setMessageConverter</span><span class="o">(</span><span class="n">converter</span><span class="o">);</span>
+        <span class="k">return</span> <span class="n">factory</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Bean</span>
+    <span class="kd">public</span> <span class="nc">Jackson2JsonMessageConverter</span> <span class="nf">getMessageConverter</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="k">new</span> <span class="nf">Jackson2JsonMessageConverter</span><span class="o">();</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>RabbitMQ는 기본 설정 시 아래와 같은 연결 정보를 사용한다.</p>
+
+<ul>
+  <li>Host: localhost</li>
+  <li>Port: 5672</li>
+  <li>User: guest</li>
+  <li>Password: guest</li>
+</ul>
+
+<p>기본적인 함수나 객체의 의미는 주석처리하였으며, RabbitMQ 개념을 다음 글에서 정리하고, 이를 다시 Spring boot amqp 와 매핑하는 과정을 그 다음글에서 정리할 예정</p>
+
+<h4 id="receiver-클래스"><code class="highlighter-rouge">Receiver</code> 클래스</h4>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kn">package</span> <span class="n">com</span><span class="o">.</span><span class="na">leeyh0216</span><span class="o">.</span><span class="na">rabbitmq</span><span class="o">.</span><span class="na">receiver</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">org.slf4j.Logger</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.slf4j.LoggerFactory</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.amqp.rabbit.annotation.RabbitListener</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.stereotype.Component</span><span class="o">;</span>
+
+<span class="nd">@Component</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">Receiver</span><span class="o">{</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kd">final</span> <span class="nc">Logger</span> <span class="n">logger</span> <span class="o">=</span> <span class="nc">LoggerFactory</span><span class="o">.</span><span class="na">getLogger</span><span class="o">(</span><span class="nc">Receiver</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+
+    <span class="cm">/**
+     * 메시지 수신 시 처리할 Handler 함수
+     * @param message RabbitMQ의 test-queue-1으로부터 수신한 메시지
+     */</span>
+    <span class="nd">@RabbitListener</span><span class="o">(</span><span class="n">containerFactory</span> <span class="o">=</span> <span class="s">"SampleContainerFactory"</span><span class="o">,</span> <span class="n">queues</span><span class="o">=</span><span class="s">"test-queue-1"</span><span class="o">)</span>
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">onReceiveMessage</span><span class="o">(</span><span class="nc">SampleMessage</span> <span class="n">message</span><span class="o">){</span>
+        <span class="n">logger</span><span class="o">.</span><span class="na">info</span><span class="o">(</span><span class="s">"Receiver received message: {}"</span><span class="o">,</span> <span class="n">message</span><span class="o">);</span>
+    <span class="o">}</span>
+
+<span class="o">}</span></code></pre></figure>
+
+<p>RabbitMQ로부터 메시지를 수신하여 처리할 <code class="highlighter-rouge">Handler</code> 함수를 포함하는 클래스이다.</p>
+
+<h4 id="samplemessage-클래스"><code class="highlighter-rouge">SampleMessage</code> 클래스</h4>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kn">package</span> <span class="n">com</span><span class="o">.</span><span class="na">leeyh0216</span><span class="o">.</span><span class="na">rabbitmq</span><span class="o">.</span><span class="na">receiver</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">com.fasterxml.jackson.databind.ObjectMapper</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">java.io.Serializable</span><span class="o">;</span>
+
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">SampleMessage</span> <span class="kd">implements</span> <span class="nc">Serializable</span> <span class="o">{</span>
+    <span class="kd">private</span> <span class="nc">String</span> <span class="n">name</span><span class="o">;</span>
+    <span class="kd">private</span> <span class="nc">String</span> <span class="n">content</span><span class="o">;</span>
+
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">getName</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">name</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setName</span><span class="o">(</span><span class="nc">String</span> <span class="n">name</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">getContent</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">content</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setContent</span><span class="o">(</span><span class="nc">String</span> <span class="n">content</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">content</span> <span class="o">=</span> <span class="n">content</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="nc">String</span> <span class="nf">toString</span><span class="o">(){</span>
+        <span class="k">try</span> <span class="o">{</span>
+            <span class="k">return</span> <span class="k">new</span> <span class="nf">ObjectMapper</span><span class="o">().</span><span class="na">writeValueAsString</span><span class="o">(</span><span class="k">this</span><span class="o">);</span>
+        <span class="o">}</span>
+        <span class="k">catch</span><span class="o">(</span><span class="nc">Exception</span> <span class="n">e</span><span class="o">){</span>
+            <span class="nc">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">"err to parsing"</span><span class="o">);</span>
+            <span class="k">return</span> <span class="s">""</span><span class="o">;</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<h4 id="receiverapplication-클래스"><code class="highlighter-rouge">ReceiverApplication</code> 클래스</h4>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kn">package</span> <span class="n">com</span><span class="o">.</span><span class="na">leeyh0216</span><span class="o">.</span><span class="na">rabbitmq</span><span class="o">.</span><span class="na">receiver</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">org.springframework.boot.SpringApplication</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.boot.autoconfigure.SpringBootApplication</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.springframework.context.annotation.ComponentScan</span><span class="o">;</span>
+
+<span class="nd">@SpringBootApplication</span>
+<span class="nd">@ComponentScan</span><span class="o">(</span><span class="s">"com.leeyh0216.rabbitmq.receiver"</span><span class="o">)</span>
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">ReceiverApplication</span> <span class="o">{</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="nc">String</span><span class="o">[]</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="nc">InterruptedException</span> <span class="o">{</span>
+        <span class="nc">SpringApplication</span><span class="o">.</span><span class="na">run</span><span class="o">(</span><span class="nc">ReceiverApplication</span><span class="o">.</span><span class="na">class</span><span class="o">,</span> <span class="n">args</span><span class="o">);</span>
+    <span class="o">}</span>
+
+<span class="o">}</span></code></pre></figure>
+
+<h3 id="실행해보기">실행해보기</h3>
+
+<p>Sender의 경우 구현하지 않고 일단 RabbitMQ Web Management에서 메시지를 보내보기로 했다.</p>
+
+<p>Application을 구동하면 아래와 같이 로그에 RabbitMQ 연결 정보와 함께 정상적으로 연결되었다는 메시지가 출력되는 것을 볼 수 있다.</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash">  <span class="nb">.</span>   ____          _            __ _ _
+ /<span class="se">\\</span> / ___<span class="s1">'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '</span>_ | <span class="s1">'_| | '</span>_ <span class="se">\/</span> _<span class="sb">`</span> | <span class="se">\ \ \ \
+</span>
+ <span class="se">\\</span>/  ___<span class="o">)</span>| |_<span class="o">)</span>| | | | | <span class="o">||</span> <span class="o">(</span>_| |  <span class="o">)</span> <span class="o">)</span> <span class="o">)</span> <span class="o">)</span>
+  <span class="s1">'  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v1.4.6.RELEASE)
+ 2018-12-30 14:27:37.088  INFO 10680 --- [cTaskExecutor-1] o.s.a.r.c.CachingConnectionFactory       : Created new connection: SimpleConnection@32b38058 [delegate=amqp://guest@127.0.0.1:5672/, localPort= 50732]
+2018-12-30 14:27:37.223  INFO 10680 --- [           main] s.b.c.e.t.TomcatEmbeddedServletContainer : Tomcat started on port(s): 8080 (http)
+2018-12-30 14:27:37.230  INFO 10680 --- [           main] c.l.r.receiver.ReceiverApplication       : Started ReceiverApplication in 5.807 seconds (JVM running for 6.494)</span></code></pre></figure>
+
+<p>이제 RabbitMQ Web Management 페이지로 가서 메시지를 보내보도록 하자. 접속은 <code class="highlighter-rouge">http://localhost:15672</code>로 할 수 있고, 초기 사용자와 패스워드는 <code class="highlighter-rouge">guest</code>, <code class="highlighter-rouge">guest</code>이다.</p>
+
+<p>아래와 같이 Exchange에 우리가 선언한 <code class="highlighter-rouge">test-exchange-1</code> Exchange가 생성되어 있는 것을 확인할 수 있다.</p>
+
+<p><img src="/assets/spring/rabbitmq-webmanagement-1.jpg" alt="Exchange Overview Page" /></p>
+
+<p><code class="highlighter-rouge">test-exchange-1</code>을 클릭해보면 아래와 같이 해당 Exchange의 타입(topic)과 Binding을 확인할 수 있다.</p>
+
+<p><img src="/assets/spring/rabbitmq-webmanagement-2.jpg" alt="Exchange Detail Page" /></p>
+
+<p>Queues 페이지를 들어가보면 우리가 선언한 <code class="highlighter-rouge">test-queue-1</code>이 생성되어 있는 것을 확인할 수 있다.</p>
+
+<p><img src="/assets/spring/rabbitmq-webmanagement-3.jpg" alt="Queue Overview Page" /></p>
+
+<p><code class="highlighter-rouge">test-queue-1</code>을 클릭해보면 해당 Queue의 정보 확인, 메시지 송/수신 등 Queue에 대한 기능을 수행할 수 있다.</p>
+
+<p><img src="/assets/spring/rabbitmq-webmanagement-4.jpg" alt="Queue Detail Page" /></p>
+
+<p>이제 큐에 메시지를 보내보도록 하자. 아래와 같이 Publish message 탭을 눌러 메시지를 작성한 후 전송해보자. 이 때 properties에는 아래와 같이 <code class="highlighter-rouge">content_type</code>을 <code class="highlighter-rouge">application/json</code>으로 설정해주어야 한다.</p>
+
+<p><img src="/assets/spring/rabbitmq-webmanagement-5.jpg" alt="Publish Message" /></p>
+
+<p>우리가 띄워놓은 Application의 로그를 확인해보면, 아래와 같이 방금 Publish한 메시지의 내용을 출력한 것을 확인할 수 있다.</p>
+
+<figure class="highlight"><pre><code class="language-bash" data-lang="bash">2018-12-30 14:38:11.986  INFO 10680 <span class="nt">---</span> <span class="o">[</span>cTaskExecutor-1] c.leeyh0216.rabbitmq.receiver.Receiver   : Receiver received message: <span class="o">{</span><span class="s2">"name"</span>:<span class="s2">"sample-message-1"</span>,<span class="s2">"content"</span>:<span class="s2">"hello world!"</span><span class="o">}</span></code></pre></figure>
+
+
+</div>
+
+<div class="pagination">
+  
+    <a href="/2018-12-30/spring-rabbitmq-2" class="left arrow">&#8592;</a>
+  
+  
+    <a href="/2018-12-23/spring-core-4" class="right arrow">&#8594;</a>
+  
+
+  <a href="#" class="top">Top</a>
+</div>
+
+    </main>
+
+    <footer>
+  <span>
+    &copy; <time datetime="2019-11-05 21:11:02 +0900">2019</time> leeyh0216. Made with Jekyll using the <a href="https://github.com/chesterhow/tale/">Tale</a> theme.
+  </span>
+</footer>
+
+  </body>
+</html>

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Apache Spark - Data Source V2(1) | DevLog</title>
+<meta name="generator" content="Jekyll v3.8.6" />
+<meta property="og:title" content="Apache Spark - Data Source V2(1)" />
+<meta name="author" content="leeyh0216" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Apache Spark Data Source V2 with Wehchen Fan and Gengliang Wang Github - spirom/spark-datasources 을 참고하여 작성하였습니다." />
+<meta property="og:description" content="Apache Spark Data Source V2 with Wehchen Fan and Gengliang Wang Github - spirom/spark-datasources 을 참고하여 작성하였습니다." />
+<link rel="canonical" href="https://leeyh0216.github.io/2019-11-01/spark-datasource-v2-1" />
+<meta property="og:url" content="https://leeyh0216.github.io/2019-11-01/spark-datasource-v2-1" />
+<meta property="og:site_name" content="DevLog" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2019-11-01T22:00:00+09:00" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"leeyh0216"},"url":"https://leeyh0216.github.io/2019-11-01/spark-datasource-v2-1","mainEntityOfPage":{"@type":"WebPage","@id":"https://leeyh0216.github.io/2019-11-01/spark-datasource-v2-1"},"headline":"Apache Spark - Data Source V2(1)","dateModified":"2019-11-01T22:00:00+09:00","datePublished":"2019-11-01T22:00:00+09:00","description":"Apache Spark Data Source V2 with Wehchen Fan and Gengliang Wang Github - spirom/spark-datasources 을 참고하여 작성하였습니다.","@type":"BlogPosting","@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/assets/main.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Libre+Baskerville:400,400i,700">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+
+  <!-- RSS -->
+  <link type="application/atom+xml" rel="alternate" href="https://leeyh0216.github.io/feed.xml" title="DevLog" />
+
+  <!-- Google Analytics-->
+  <script data-ad-client="ca-pub-8829030678254956" async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+</head>
+
+
+  <body>
+
+    <nav class="nav">
+  <div class="nav-container">
+    <a href="/">
+      <h2 class="nav-title">DevLog</h2>
+    </a>
+    <ul>
+      <li><a href="/about">About</a></li>
+      <li><a href="/">Posts</a></li>
+      <li><a href="/tags">Tags</a></li>
+    </ul>
+  </div>
+</nav>
+
+
+    <main>
+      <div class="post">
+  <div class="post-info">
+    <span>Written by</span>
+    
+        leeyh0216
+    
+
+    
+      <br>
+      <span>on&nbsp;</span><time datetime="2019-11-01 22:00:00 +0900">November 01, 2019</time>
+    
+    
+    
+      <br>
+      <span>
+      
+        
+        <a style="text-decoration: none;" href="/tag/apache-spark"><code class="highligher-rouge"><nobr>apache-spark</nobr></code>&nbsp;</a>
+      
+      </span>
+    
+  </span>
+  </div>
+
+  <h1 class="post-title">Apache Spark - Data Source V2(1)</h1>
+  <div class="post-line"></div>
+
+  <blockquote>
+  <ul>
+    <li><a href="https://www.slideshare.net/databricks/apache-spark-data-source-v2-with-wenchen-fan-and-gengliang-wang">Apache Spark Data Source V2 with Wehchen Fan and Gengliang Wang</a></li>
+    <li><a href="https://github.com/spirom/spark-data-sources">Github - spirom/spark-datasources</a></li>
+  </ul>
+
+  <p>을 참고하여 작성하였습니다.</p>
+</blockquote>
+
+<h1 id="data-source-api-v2">Data Source API V2</h1>
+
+<h2 id="what-is-data-source-api">What is Data Source API?</h2>
+
+<p>Storage System에(서) 어떻게 데이터를 쓰고 읽는지 정의하는 API이다. 예를 들어 Hadoop는 InputFormat/OutputFormat, Hive는 Serde, Presto는 Connector 등의 Data Source API를 가지고 있다.</p>
+
+<h3 id="anciet-age-custom-rdd">Anciet Age: Custom RDD</h3>
+
+<figure class="highlight"><pre><code class="language-scala" data-lang="scala"><span class="nv">rdd</span><span class="o">.</span><span class="py">mapPartitions</span><span class="o">{</span> <span class="n">it</span> <span class="k">=&gt;</span> 
+    <span class="c1">//custom logic to write to external storage
+</span><span class="o">}</span></code></pre></figure>
+
+<p>Spark의 RDD API를 사용하던 시절에는 위와 같이 RDD의 mapPartitions 함수를 호출하여 Partition 단위로 데이터를 외부 시스템에 쓰기도 했다.</p>
+
+<h1 id="new-requirements-when-switching-to-spark-sql">New Requirements When Switching to Spark SQL</h1>
+
+<p>데이터를 읽고 쓸 때는 다음과 같은 요구사항들이 있을 수 있다.</p>
+
+<h2 id="how-to-read-data">How to read data?</h2>
+
+<ul>
+  <li>분산 환경에서 데이터를 병렬로 읽어들이는 방법</li>
+  <li>읽을 때 필터를 적용하여 필요한 데이터만 읽어들이는 방법</li>
+  <li>aggregate, limit 등의 연산들의 속도를 향상시키는 방법</li>
+  <li>Spark의 Data Encoding을 통해 데이터를 변환하는 방법</li>
+  <li>읽기에 관한 추가 정보(Data statistics, Data partitioning 등)를 Spark에 전달하는 방법</li>
+  <li>Structured Streaming 지원</li>
+</ul>
+
+<h2 id="how-to-write-data">How to write data?</h2>
+
+<ul>
+  <li>분산 환경에서 데이터를 병렬로 기록하는 방법</li>
+  <li>데이터 쓰기 연산을 atomic하게 만드는 방법</li>
+  <li>쓰기 실패가 발생했을 경우 처리하는 방법</li>
+  <li>Spark의 Data Encoding을 통해 데이터를 변환하는 방법</li>
+  <li>Structured Streaming 지원</li>
+</ul>
+
+<h2 id="whats-the-design-of-data-source-api-v2">What’s the design of Data Source API V2?</h2>
+
+<blockquote>
+  <p>내용이 많아 이 포스트에는 Read만 기록하려 한다. Write는 다른 포스트에서 기록할 예정이다.</p>
+
+  <p>또한 Spark 2.3 버전과 2.4 버전에서 DataSourceV2 API의 인터페이스가 달라졌는데, 이 포스트에서는 2.3 버전 기준으로 설명하도록 한다.</p>
+</blockquote>
+
+<p><img src="../../assets/spark_datasource_v2_read_flow.png" alt="Spark DataSourceV2 Read Flow" /></p>
+
+<h3 id="datasourcev2orgapachesparksqlsourcesv2datasourcev2">DataSourceV2(org.apache.spark.sql.sources.v2.DataSourceV2)</h3>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">DataSourceV2</span> <span class="o">{}</span></code></pre></figure>
+
+<p>DataSourceAPI V2를 지원하기 위한 기본 인터페이스. 아무 함수도 존재하지 않는 인터페이스이며, 해당 인터페이스에 <code class="highlighter-rouge">ReadSupport</code>나 <code class="highlighter-rouge">WriteSupport</code> 등의 Trait을 믹스인(Mix-in) 하여 사용한다.</p>
+
+<h3 id="readsupportorgapachesparksqlsourcesv2readsupport">ReadSupport(org.apache.spark.sql.sources.v2.ReadSupport)</h3>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">ReadSupport</span> <span class="kd">extends</span> <span class="nc">DataSourceV2</span> <span class="o">{</span>
+  <span class="nc">DataSourceReader</span> <span class="nf">createReader</span><span class="o">(</span><span class="nc">DataSourceOptions</span> <span class="n">options</span><span class="o">);</span>
+<span class="o">}</span></code></pre></figure>
+
+<p>데이터 읽기를 지원하는 DataSource가 구현해야하는 인터페이스이다. <code class="highlighter-rouge">DataSourceV2</code> 인터페이스에 믹스인해서 사용한다.</p>
+
+<p>구현해야하는 함수는 <code class="highlighter-rouge">createReader</code>이며, 해당 함수의 반환형인 <code class="highlighter-rouge">DataSourceReader</code>는 <strong>실제로 데이터를 읽는 역할을 하지는 않고, 읽고자 하는 데이터를 스캔(예를 들어 하둡 파일인 경우 하둡 파일 블록이 몇개인지 확인하는)하는 역할을 수행</strong>한다.</p>
+
+<h3 id="datasourcereaderorgapachesparksqlsourcesv2readerdatasourcereader">DataSourceReader(org.apache.spark.sql.sources.v2.reader.DataSourceReader)</h3>
+
+<figure class="highlight"><pre><code class="language-java" data-lang="java"><span class="kd">public</span> <span class="kd">interface</span> <span class="nc">DataSourceReader</span> <span class="o">{</span>
+
+  <span class="nc">StructType</span> <span class="nf">readSchema</span><span class="o">();</span>
+
+  <span class="nc">List</span><span class="o">&lt;</span><span class="nc">DataReaderFactory</span><span class="o">&lt;</span><span class="nc">Row</span><span class="o">&gt;&gt;</span> <span class="nf">createDataReaderFactories</span><span class="o">();</span>
+
+<span class="o">}</span></code></pre></figure>
+
+<p>위의 <code class="highlighter-rouge">ReadSupport</code>의 <code class="highlighter-rouge">createReader</code> 함수가 반환하는 객체의 클래스이다.</p>
+
+<h4 id="datasourcereader의-읽기-최적화">DataSourceReader의 읽기 최적화</h4>
+
+<p><code class="highlighter-rouge">DataSourceReader</code> 인터페이스는 데이터 스캔 속도를 높이기 위해 다양한 쿼리 최적화 인터페이스와 믹스인할 수 있다. 실제 스캔 로직은 <code class="highlighter-rouge">DataReaderFactory</code>에게 위임된다.</p>
+
+<p>주요 쿼리 최적화 인터페이스는 다음과 같이 3가지가 존재한다.</p>
+
+<ul>
+  <li>Operators push-down: Filter Pushdown, Project Pushdown(Required field push-down, a.k.a column pruning)…</li>
+  <li>Information Reporting: Statstics reporting, Ordering Reporting 등</li>
+  <li>Special scans: columnar scan, unsafe row scan…</li>
+</ul>
+
+<p>Spark에서 데이터를 읽을 때는 다음과 같은 순서로 진행된다.</p>
+
+<ol>
+  <li>DataSource가 지원하는 Push Down 최적화를 모두 적용/수행</li>
+  <li>추가적인 최적화를 적용하기 위해 DataSource의 정보 수집(Statistics, Ordering)</li>
+  <li>데이터 스캔</li>
+  <li>실제 데이터 읽기</li>
+</ol>
+
+<p>다만 위와 같은 최적화 인터페이스의 수행이 실패할 경우, Spark Action이 실패하므로 주의해야 한다.</p>
+
+<h4 id="datasourcereader의-함수">DataSourceReader의 함수</h4>
+
+<h5 id="readschema"><code class="highlighter-rouge">readSchema</code></h5>
+
+<p>읽을 데이터의 스키마를 반환한다. Column pruning이나 다른 최적화가 발생하는 경우에는 실제 스키마와 다를 수 있다.</p>
+
+<h5 id="createdatareaderfactories"><code class="highlighter-rouge">createDataReaderFactories</code></h5>
+<p>데이터를 실제로 읽는 <code class="highlighter-rouge">DataReader</code> 객체를 생성하는 <code class="highlighter-rouge">DataReaderFactory</code> 객체를 반환한다. 
+<strong>데이터를 구성하는 파티션 1개 당 1개의 <code class="highlighter-rouge">DataReaderFactory</code>가 생성되기 때문에, 이 함수에서 반환하는 <code class="highlighter-rouge">DataReaderFactory</code>의 수는 읽을 파티션의 수와 동일해야 한다.</strong></p>
+
+<p>또한 <code class="highlighter-rouge">DataSourceReader</code>에 최적화 인터페이스가 적용된 경우 Full Scan을 수행하지 않을 수도 있다.</p>
+
+<h2 id="datasourcev2를-활용하여-in-memory-datasource-만들기">DataSourceV2를 활용하여 In Memory DataSource 만들기</h2>
+
+<p>Spark의 DataSourceV2 API를 이용하여 In Memory DataSource를 읽어보도록 한다.</p>
+
+<h3 id="library">Library</h3>
+
+<p>우리가 읽을 가상의 DataSource인 Library이다. Library는 아래와 같은 속성을 가진다.</p>
+
+<ul>
+  <li>Library는 1개 이상의 책 시리즈을 보유하고 있다.</li>
+  <li>각 책 시리즈는 1권 이상의 책으로 이루어져 있다.</li>
+  <li>각 책은 1장 이상의 페이지로 구성되어 있다.</li>
+  <li>각 페이지는 페이지 번호와 내용으로 구성되어 있다.</li>
+</ul>
+
+<p>위 속성을 통해 아래와 같은 클래스들을 도출하였다.</p>
+
+<h4 id="page">Page</h4>
+
+<figure class="highlight"><pre><code class="language-scala" data-lang="scala"><span class="k">case</span> <span class="k">class</span> <span class="nc">Page</span><span class="o">(</span><span class="n">page</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">content</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span></code></pre></figure>
+
+<h4 id="book">Book</h4>
+
+<figure class="highlight"><pre><code class="language-scala" data-lang="scala"><span class="k">case</span> <span class="k">class</span> <span class="nc">Book</span><span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">volume</span><span class="k">:</span> <span class="kt">Int</span><span class="o">,</span> <span class="n">pages</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Page</span><span class="o">])</span></code></pre></figure>
+
+<h4 id="library-1">Library</h4>
+
+<figure class="highlight"><pre><code class="language-scala" data-lang="scala"><span class="k">import</span> <span class="nn">scala.collection.mutable</span>
+
+<span class="k">object</span> <span class="nc">Library</span> <span class="o">{</span>
+  <span class="k">var</span> <span class="nc">_library</span><span class="k">:</span> <span class="kt">Library</span> <span class="o">=</span> <span class="k">new</span> <span class="nc">Library</span><span class="o">()</span>
+
+  <span class="k">def</span> <span class="nf">getLibrary</span><span class="o">()</span><span class="k">:</span> <span class="kt">Library</span> <span class="o">={</span>
+    <span class="nc">_library</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="k">class</span> <span class="nc">Library</span> <span class="o">{</span>
+  <span class="k">val</span> <span class="nv">bookSheleves</span><span class="k">:</span> <span class="kt">mutable.Map</span><span class="o">[</span><span class="kt">String</span>, <span class="kt">List</span><span class="o">[</span><span class="kt">Book</span><span class="o">]]</span> <span class="k">=</span> <span class="nv">mutable</span><span class="o">.</span><span class="py">Map</span><span class="o">()</span>
+
+  <span class="k">def</span> <span class="nf">addBookSeries</span><span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">,</span> <span class="n">bookSeries</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Book</span><span class="o">])</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span>
+    <span class="n">bookSheleves</span> <span class="o">+=</span> <span class="o">(</span><span class="n">name</span> <span class="o">-&gt;</span> <span class="n">bookSeries</span><span class="o">)</span>
+
+  <span class="k">def</span> <span class="nf">getBookSeries</span><span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">Book</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="nf">if</span><span class="o">(</span><span class="nv">bookSheleves</span><span class="o">.</span><span class="py">contains</span><span class="o">(</span><span class="n">name</span><span class="o">))</span>
+      <span class="nf">bookSheleves</span><span class="o">(</span><span class="n">name</span><span class="o">)</span>
+    <span class="k">else</span>
+      <span class="k">throw</span> <span class="k">new</span> <span class="nc">IllegalArgumentException</span><span class="o">(</span><span class="n">s</span><span class="s">"No name book: ${name}"</span><span class="o">)</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<h3 id="inmemory-datasource-api">Inmemory DataSource API</h3>
+
+<p><code class="highlighter-rouge">Library</code> 를 읽기 위한 <code class="highlighter-rouge">BookDataSource</code> API는 다음과 같은 클래스로 구성되어 있다.</p>
+
+<ul>
+  <li><code class="highlighter-rouge">BookDataSource</code>: <code class="highlighter-rouge">Library</code>에서 지정된 책을 읽기 위한 <code class="highlighter-rouge">DataSource</code>. 읽기 전용으로 구현.</li>
+  <li><code class="highlighter-rouge">BookDataSourceReader</code>: <code class="highlighter-rouge">Library</code>에 저장된 책의 스키마 정보와 저장된 책의 파티션을 읽을 <code class="highlighter-rouge">BookReader</code>를 생성할 수 있는 <code class="highlighter-rouge">BookReaderFactory</code> 객체 목록을 반환하는 메서드를 제공한다. 지정된 책 시리즈가 몇 권의 책(파티션)으로 이루어져 있는지 추론할 수 있다.</li>
+  <li><code class="highlighter-rouge">BookReaderFactory</code>: 지정된 책을 읽을 수 있는 <code class="highlighter-rouge">BookReader</code> 객체를 반환한다.</li>
+  <li><code class="highlighter-rouge">BookReader</code>: 지정된 책을 Page 단위로 읽을 수 있는 객체이다.</li>
+</ul>
+
+<p>각 클래스는 아래와 같으며, 전체 코드는 <a href="https://github.com/leeyh0216/spark-examples/tree/feature/ConcurrentUsersInZone/src/main/scala/com/leeyh0216/spark/example/datasource/inmemory">Github</a> 에서 확인할 수 있습니다.</p>
+
+<h4 id="bookdatasource">BookDataSource</h4>
+
+<figure class="highlight"><pre><code class="language-scala" data-lang="scala"><span class="k">package</span> <span class="nn">com.leeyh0216.spark.example.datasource.inmemory</span>
+
+<span class="k">import</span> <span class="nn">com.leeyh0216.spark.example.datasource.library.Library</span>
+<span class="k">import</span> <span class="nn">org.apache.spark.sql.sources.v2.reader.DataSourceReader</span>
+<span class="k">import</span> <span class="nn">org.apache.spark.sql.sources.v2.</span><span class="o">{</span><span class="nc">DataSourceOptions</span><span class="o">,</span> <span class="nc">DataSourceV2</span><span class="o">,</span> <span class="nc">ReadSupport</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">org.slf4j.LoggerFactory</span>
+
+<span class="cm">/**
+ * 커스텀 데이터소스인 BookDataSource 클래스.
+ * 읽기 전용 DataSource이기 때문에 ReadSupport만 상속하였다.
+ */</span>
+<span class="k">class</span> <span class="nc">BookDataSource</span> <span class="k">extends</span> <span class="nc">DataSourceV2</span> <span class="k">with</span> <span class="nc">ReadSupport</span><span class="o">{</span>
+  <span class="k">val</span> <span class="nv">logger</span> <span class="k">=</span> <span class="nv">LoggerFactory</span><span class="o">.</span><span class="py">getLogger</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">BookDataSource</span><span class="o">])</span>
+
+  <span class="k">override</span> <span class="k">def</span> <span class="nf">createReader</span><span class="o">(</span><span class="n">options</span><span class="k">:</span> <span class="kt">DataSourceOptions</span><span class="o">)</span><span class="k">:</span> <span class="kt">DataSourceReader</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="nv">bookName</span> <span class="k">=</span> <span class="nv">options</span><span class="o">.</span><span class="py">get</span><span class="o">(</span><span class="s">"bookName"</span><span class="o">).</span><span class="py">get</span><span class="o">()</span>
+    <span class="k">new</span> <span class="nc">BookDataSourceReader</span><span class="o">(</span><span class="nv">Library</span><span class="o">.</span><span class="py">getLibrary</span><span class="o">(),</span> <span class="n">bookName</span><span class="o">)</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<h4 id="bookdatasourcereader">BookDataSourceReader</h4>
+
+<figure class="highlight"><pre><code class="language-scala" data-lang="scala"><span class="k">package</span> <span class="nn">com.leeyh0216.spark.example.datasource.inmemory</span>
+
+<span class="k">import</span> <span class="nn">java.util</span>
+
+<span class="k">import</span> <span class="nn">com.leeyh0216.spark.example.datasource.library.Library</span>
+<span class="k">import</span> <span class="nn">org.apache.spark.sql.Row</span>
+<span class="k">import</span> <span class="nn">org.apache.spark.sql.sources.v2.reader.</span><span class="o">{</span><span class="nc">DataReaderFactory</span><span class="o">,</span> <span class="nc">DataSourceReader</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">org.apache.spark.sql.types.</span><span class="o">{</span><span class="nc">IntegerType</span><span class="o">,</span> <span class="nc">StringType</span><span class="o">,</span> <span class="nc">StructType</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">org.slf4j.LoggerFactory</span>
+
+<span class="cm">/**
+ * DataSourceReader를 상속한 BookDataSourceReader 클래스.
+ * Library에 있는 BookShelves에서 특정 Book을 읽는 것을 지원한다.
+ *
+ * @param library Library 객체
+ * @param name 읽을 책 이름
+ */</span>
+<span class="k">class</span> <span class="nc">BookDataSourceReader</span><span class="o">(</span><span class="n">library</span><span class="k">:</span> <span class="kt">Library</span><span class="o">,</span> <span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">DataSourceReader</span> <span class="o">{</span>
+  <span class="k">val</span> <span class="nv">logger</span> <span class="k">=</span> <span class="nv">LoggerFactory</span><span class="o">.</span><span class="py">getLogger</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">BookDataSourceReader</span><span class="o">])</span>
+  <span class="k">val</span> <span class="nv">booksToRead</span> <span class="k">=</span> <span class="nv">library</span><span class="o">.</span><span class="py">getBookSeries</span><span class="o">(</span><span class="n">name</span><span class="o">)</span>
+
+  <span class="k">override</span> <span class="k">def</span> <span class="nf">readSchema</span><span class="o">()</span><span class="k">:</span> <span class="kt">StructType</span> <span class="o">=</span>
+    <span class="k">new</span> <span class="nc">StructType</span><span class="o">()</span>
+      <span class="o">.</span><span class="py">add</span><span class="o">(</span><span class="s">"name"</span><span class="o">,</span> <span class="nc">StringType</span><span class="o">)</span>
+      <span class="o">.</span><span class="py">add</span><span class="o">(</span><span class="s">"volume"</span><span class="o">,</span> <span class="nc">IntegerType</span><span class="o">)</span>
+      <span class="o">.</span><span class="py">add</span><span class="o">(</span><span class="s">"page"</span><span class="o">,</span> <span class="nc">IntegerType</span><span class="o">)</span>
+      <span class="o">.</span><span class="py">add</span><span class="o">(</span><span class="s">"content"</span><span class="o">,</span> <span class="nc">StringType</span><span class="o">)</span>
+
+  <span class="k">override</span> <span class="k">def</span> <span class="nf">createDataReaderFactories</span><span class="o">()</span><span class="k">:</span> <span class="kt">util.List</span><span class="o">[</span><span class="kt">DataReaderFactory</span><span class="o">[</span><span class="kt">Row</span><span class="o">]]</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="nv">bookReaderFactories</span> <span class="k">=</span> <span class="k">new</span> <span class="nv">util</span><span class="o">.</span><span class="py">ArrayList</span><span class="o">[</span><span class="kt">DataReaderFactory</span><span class="o">[</span><span class="kt">Row</span><span class="o">]]()</span>
+    <span class="nv">booksToRead</span><span class="o">.</span><span class="py">foreach</span><span class="o">(</span><span class="n">book</span> <span class="k">=&gt;</span> <span class="nv">bookReaderFactories</span><span class="o">.</span><span class="py">add</span><span class="o">(</span><span class="k">new</span> <span class="nc">BookReaderFactory</span><span class="o">(</span><span class="n">book</span><span class="o">)))</span>
+    <span class="n">bookReaderFactories</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<h4 id="bookreader">BookReader</h4>
+
+<figure class="highlight"><pre><code class="language-scala" data-lang="scala"><span class="k">package</span> <span class="nn">com.leeyh0216.spark.example.datasource.inmemory</span>
+
+<span class="k">import</span> <span class="nn">com.leeyh0216.spark.example.datasource.library.Book</span>
+<span class="k">import</span> <span class="nn">org.apache.spark.sql.Row</span>
+<span class="k">import</span> <span class="nn">org.apache.spark.sql.sources.v2.reader.DataReader</span>
+<span class="k">import</span> <span class="nn">org.slf4j.LoggerFactory</span>
+
+<span class="cm">/**
+ * 실제로 Book을 읽어들이는 BookReader 클래스.
+ * Executor에서 동작하게 된다.
+ * @param book 읽어야 할 Book 객체
+ */</span>
+<span class="k">class</span> <span class="nc">BookReader</span><span class="o">(</span><span class="n">book</span><span class="k">:</span> <span class="kt">Book</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">DataReader</span><span class="o">[</span><span class="kt">Row</span><span class="o">]{</span>
+  <span class="k">val</span> <span class="nv">logger</span> <span class="k">=</span> <span class="nv">LoggerFactory</span><span class="o">.</span><span class="py">getLogger</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">BookReader</span><span class="o">])</span>
+  <span class="k">val</span> <span class="nv">pageIterator</span> <span class="k">=</span> <span class="nv">book</span><span class="o">.</span><span class="py">pages</span><span class="o">.</span><span class="py">iterator</span>
+  <span class="k">val</span> <span class="nv">name</span> <span class="k">=</span> <span class="nv">book</span><span class="o">.</span><span class="py">name</span>
+  <span class="k">val</span> <span class="nv">volume</span> <span class="k">=</span> <span class="nv">book</span><span class="o">.</span><span class="py">volume</span>
+
+  <span class="nv">logger</span><span class="o">.</span><span class="py">info</span><span class="o">(</span><span class="n">s</span><span class="s">"Book reader initialized. Name: ${book.name}, Volume: ${book.volume}"</span><span class="o">)</span>
+
+  <span class="k">override</span> <span class="k">def</span> <span class="nf">next</span><span class="o">()</span><span class="k">:</span> <span class="kt">Boolean</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="nv">pageIterator</span><span class="o">.</span><span class="py">hasNext</span>
+  <span class="o">}</span>
+
+  <span class="k">override</span> <span class="k">def</span> <span class="nf">get</span><span class="o">()</span><span class="k">:</span> <span class="kt">Row</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="nv">page</span> <span class="k">=</span> <span class="nv">pageIterator</span><span class="o">.</span><span class="py">next</span><span class="o">()</span>
+    <span class="nv">Row</span><span class="o">.</span><span class="py">apply</span><span class="o">(</span><span class="n">name</span><span class="o">,</span> <span class="n">volume</span><span class="o">,</span> <span class="nv">page</span><span class="o">.</span><span class="py">page</span><span class="o">,</span> <span class="nv">page</span><span class="o">.</span><span class="py">content</span><span class="o">)</span>
+  <span class="o">}</span>
+
+  <span class="k">override</span> <span class="k">def</span> <span class="nf">close</span><span class="o">()</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="o">{</span>
+    <span class="nv">logger</span><span class="o">.</span><span class="py">info</span><span class="o">(</span><span class="n">s</span><span class="s">"Book closed. Name: ${book.name}, Volume: ${book.volume}"</span><span class="o">)</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+<h4 id="bookreaderfactory">BookReaderFactory</h4>
+
+<figure class="highlight"><pre><code class="language-scala" data-lang="scala"><span class="k">package</span> <span class="nn">com.leeyh0216.spark.example.datasource.inmemory</span>
+
+<span class="k">import</span> <span class="nn">com.leeyh0216.spark.example.datasource.library.Book</span>
+<span class="k">import</span> <span class="nn">org.apache.spark.sql.Row</span>
+<span class="k">import</span> <span class="nn">org.apache.spark.sql.sources.v2.reader.</span><span class="o">{</span><span class="nc">DataReader</span><span class="o">,</span> <span class="nc">DataReaderFactory</span><span class="o">}</span>
+
+<span class="cm">/**
+ * Book 객체를 읽을 BookReader 객체를 생성한다.
+ * @param book 읽어야 할 Book 객체
+ */</span>
+<span class="k">class</span> <span class="nc">BookReaderFactory</span><span class="o">(</span><span class="n">book</span><span class="k">:</span> <span class="kt">Book</span><span class="o">)</span> <span class="k">extends</span> <span class="nc">DataReaderFactory</span><span class="o">[</span><span class="kt">Row</span><span class="o">]{</span>
+  <span class="k">override</span> <span class="k">def</span> <span class="nf">createDataReader</span><span class="o">()</span><span class="k">:</span> <span class="kt">DataReader</span><span class="o">[</span><span class="kt">Row</span><span class="o">]</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">BookReader</span><span class="o">(</span><span class="n">book</span><span class="o">)</span>
+<span class="o">}</span></code></pre></figure>
+
+<h3 id="how-to-use">How to use?</h3>
+
+<p>구현한 데이터소스는 다음과 같이 이용할 수 있다.</p>
+
+<figure class="highlight"><pre><code class="language-scala" data-lang="scala"><span class="k">val</span> <span class="nv">harryPotter</span> <span class="k">=</span> <span class="nv">spark</span><span class="o">.</span><span class="py">read</span><span class="o">.</span><span class="py">format</span><span class="o">(</span><span class="n">inmemoryDataSourceName</span><span class="o">).</span><span class="py">option</span><span class="o">(</span><span class="s">"bookName"</span><span class="o">,</span> <span class="s">"{책이름}"</span><span class="o">).</span><span class="py">load</span><span class="o">()</span>
+<span class="nv">harryPotter</span><span class="o">.</span><span class="py">show</span><span class="o">(</span><span class="kc">false</span><span class="o">)</span></code></pre></figure>
+<p>}</p>
+
+<p>관련 테스트 코드는 아래와 같으며, 전체 코드는 <a href="https://github.com/leeyh0216/spark-examples/blob/feature/ConcurrentUsersInZone/src/test/scala/com/leeyh0216/spark/example/datasource/inmemory/InmemoryDataSourceTest.scala">Github</a>에서 확인할 수 있다.</p>
+
+<figure class="highlight"><pre><code class="language-scala" data-lang="scala"><span class="k">package</span> <span class="nn">com.leeyh0216.spark.example.datasource.inmemory</span>
+
+<span class="k">import</span> <span class="nn">java.util.UUID</span>
+
+<span class="k">import</span> <span class="nn">com.leeyh0216.spark.example.datasource.library.</span><span class="o">{</span><span class="nc">Book</span><span class="o">,</span> <span class="nc">Library</span><span class="o">,</span> <span class="nc">Page</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">org.apache.spark.sql</span>
+<span class="k">import</span> <span class="nn">org.junit.</span><span class="o">{</span><span class="nc">Assert</span><span class="o">,</span> <span class="nc">Test</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">org.slf4j.LoggerFactory</span>
+
+<span class="k">import</span> <span class="nn">scala.util.Random</span>
+
+<span class="k">class</span> <span class="nc">InmemoryDataSourceTest</span> <span class="o">{</span>
+
+  <span class="k">val</span> <span class="nv">logger</span> <span class="k">=</span> <span class="nv">LoggerFactory</span><span class="o">.</span><span class="py">getLogger</span><span class="o">(</span><span class="n">classOf</span><span class="o">[</span><span class="kt">InmemoryDataSourceTest</span><span class="o">])</span>
+  <span class="k">val</span> <span class="nv">library</span> <span class="k">=</span> <span class="nv">Library</span><span class="o">.</span><span class="py">getLibrary</span><span class="o">()</span>
+
+  <span class="k">val</span> <span class="nv">harryPotterVolumes</span> <span class="k">=</span> <span class="mi">7</span>
+  <span class="k">val</span> <span class="nv">harryPotterBookName</span> <span class="k">=</span> <span class="s">"Harry Potter"</span>
+  <span class="k">val</span> <span class="nv">harryPotter</span> <span class="k">=</span> <span class="o">(</span><span class="mi">1</span> <span class="n">to</span> <span class="n">harryPotterVolumes</span><span class="o">).</span><span class="py">map</span><span class="o">(</span><span class="n">volume</span> <span class="k">=&gt;</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="nv">lastPage</span> <span class="k">=</span> <span class="k">new</span> <span class="nc">Random</span><span class="o">().</span><span class="py">nextInt</span><span class="o">()</span> <span class="o">%</span> <span class="mi">300</span>
+    <span class="k">val</span> <span class="nv">pages</span> <span class="k">=</span> <span class="o">(</span><span class="mi">1</span> <span class="n">to</span> <span class="n">lastPage</span><span class="o">).</span><span class="py">map</span><span class="o">(</span><span class="n">page</span> <span class="k">=&gt;</span> <span class="nc">Page</span><span class="o">(</span><span class="n">page</span><span class="o">,</span> <span class="nv">UUID</span><span class="o">.</span><span class="py">randomUUID</span><span class="o">().</span><span class="py">toString</span><span class="o">))</span>
+    <span class="nc">Book</span><span class="o">(</span><span class="n">harryPotterBookName</span><span class="o">,</span> <span class="n">volume</span><span class="o">,</span> <span class="nv">pages</span><span class="o">.</span><span class="py">toList</span><span class="o">)</span>
+  <span class="o">})</span>
+  <span class="k">val</span> <span class="nv">sumOfHarryPotterPages</span> <span class="k">=</span> <span class="nv">harryPotter</span><span class="o">.</span><span class="py">map</span><span class="o">(</span><span class="n">book</span> <span class="k">=&gt;</span> <span class="nv">book</span><span class="o">.</span><span class="py">pages</span><span class="o">).</span><span class="py">map</span><span class="o">(</span><span class="n">pages</span> <span class="k">=&gt;</span> <span class="nv">pages</span><span class="o">.</span><span class="py">length</span><span class="o">).</span><span class="py">sum</span>
+  <span class="nv">library</span><span class="o">.</span><span class="py">addBookSeries</span><span class="o">(</span><span class="n">harryPotterBookName</span><span class="o">,</span> <span class="nv">harryPotter</span><span class="o">.</span><span class="py">toList</span><span class="o">)</span>
+
+  <span class="k">val</span> <span class="nv">spark</span> <span class="k">=</span> <span class="k">new</span> <span class="nv">sql</span><span class="o">.</span><span class="py">SparkSession</span><span class="o">.</span><span class="py">Builder</span><span class="o">().</span><span class="py">master</span><span class="o">(</span><span class="s">"local[*]"</span><span class="o">).</span><span class="py">config</span><span class="o">(</span><span class="s">"spark.driver.host"</span><span class="o">,</span> <span class="s">"localhost"</span><span class="o">).</span><span class="py">getOrCreate</span><span class="o">()</span>
+  <span class="k">val</span> <span class="nv">inmemoryDataSourceName</span> <span class="k">=</span> <span class="n">classOf</span><span class="o">[</span><span class="kt">BookDataSource</span><span class="o">].</span><span class="py">getName</span>
+
+  <span class="nd">@Test</span>
+  <span class="k">def</span> <span class="nf">testGetNumPartitions</span><span class="o">()</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">={</span>
+    <span class="k">val</span> <span class="nv">harryPotters</span> <span class="k">=</span> <span class="nv">spark</span><span class="o">.</span><span class="py">read</span><span class="o">.</span><span class="py">format</span><span class="o">(</span><span class="n">inmemoryDataSourceName</span><span class="o">).</span><span class="py">option</span><span class="o">(</span><span class="s">"bookName"</span><span class="o">,</span> <span class="s">"Harry Potter"</span><span class="o">).</span><span class="py">load</span><span class="o">()</span>
+    <span class="nv">Assert</span><span class="o">.</span><span class="py">assertEquals</span><span class="o">(</span><span class="n">harryPotterVolumes</span><span class="o">,</span> <span class="nv">harryPotters</span><span class="o">.</span><span class="py">rdd</span><span class="o">.</span><span class="py">getNumPartitions</span><span class="o">)</span>
+  <span class="o">}</span>
+
+  <span class="nd">@Test</span>
+  <span class="k">def</span> <span class="nf">testCount</span><span class="o">()</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">={</span>
+    <span class="k">val</span> <span class="nv">harryPotters</span> <span class="k">=</span> <span class="nv">spark</span><span class="o">.</span><span class="py">read</span><span class="o">.</span><span class="py">format</span><span class="o">(</span><span class="n">inmemoryDataSourceName</span><span class="o">).</span><span class="py">option</span><span class="o">(</span><span class="s">"bookName"</span><span class="o">,</span> <span class="s">"Harry Potter"</span><span class="o">).</span><span class="py">load</span><span class="o">()</span>
+    <span class="nv">Assert</span><span class="o">.</span><span class="py">assertEquals</span><span class="o">(</span><span class="n">sumOfHarryPotterPages</span><span class="o">,</span> <span class="nv">harryPotters</span><span class="o">.</span><span class="py">count</span><span class="o">())</span>
+  <span class="o">}</span>
+<span class="o">}</span></code></pre></figure>
+
+
+</div>
+
+<div class="pagination">
+  
+    <a href="/2019-11-05/Apache_Druid_Design" class="left arrow">&#8592;</a>
+  
+  
+    <a href="/2019-10-29/permutations_2" class="right arrow">&#8594;</a>
+  
+
+  <a href="#" class="top">Top</a>
+</div>
+
+    </main>
+
+    <footer>
+  <span>
+    &copy; <time datetime="2019-11-05 21:11:02 +0900">2019</time> leeyh0216. Made with Jekyll using the <a href="https://github.com/chesterhow/tale/">Tale</a> theme.
+  </span>
+</footer>
+
+  </body>
+</html>
