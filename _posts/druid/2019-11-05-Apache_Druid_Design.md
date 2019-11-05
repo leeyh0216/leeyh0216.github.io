@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Apache Druid - Design"
-date:   2019-11-05 18:00:00 +0900
+date:   2019-11-05 10:00:00 +0900
 author: leeyh0216
 tags:
 - apache-druid
