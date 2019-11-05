@@ -158,7 +158,7 @@ Segments 상에서는 25개가 보이지만, 00시에 수집된 데이터만 확
 
 실제로 데이터를 조회해보아도 데이터의 크기는 변하지 않고 그대로인 것을 확인할 수 있다. 즉, Datasource가 아닌 Segment 단위로 덮어쓰는 것을 확인할 수 있었다.
 
-#### #### Wikiticker-2015-09-12-00-sampled.json 파일 수집(Segment Granularity = HOUR, [2015-09-12 00:00:00.000, 2015-09-12 01:00:00.000), appendToExisting = true)
+#### Wikiticker-2015-09-12-00-sampled.json 파일 수집(Segment Granularity = HOUR, [2015-09-12 00:00:00.000, 2015-09-12 01:00:00.000), appendToExisting = true)
 
 ![Appended Segments](../../assets/druid/20191105/appended_segments.png)
 
