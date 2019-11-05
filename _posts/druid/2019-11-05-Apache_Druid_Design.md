@@ -175,6 +175,7 @@ Segments 상에서는 25개가 보이지만, 00시에 수집된 데이터만 확
 ### Dictionary Encoding
 
 {% highlight java %}
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -213,4 +214,5 @@ public class DictionaryEncodingTest {
         }
     }
 }
+
 {% endhighlight %}
