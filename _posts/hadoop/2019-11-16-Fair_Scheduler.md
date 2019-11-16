@@ -150,7 +150,6 @@ Queue의 Resource를 제한하는 방법에는 `minResources`와 `maxResources`�
 이를 테스트하기 위해, fair scheduler의 옵션을 아래오 같이 변경하였다.
 
 ```
-<?xml version="1.0"?>
 <allocations>
   <queue name="marketing">
     <weight>2.0</weight>
@@ -191,7 +190,6 @@ Queue에서 동작하는 Application의 수를 제어하고 싶은 경우, `maxR
 ##### maxRunningApps 설정해보기
 
 ```
-<?xml version="1.0"?>
 <allocations>
   <queue name="marketing">
     <weight>2.0</weight>
@@ -216,7 +214,6 @@ Queue에서 동작하는 Application의 수를 제어하고 싶은 경우, `maxR
 ##### maxAMShare 설정해보기
 
 ```
-<?xml version="1.0"?>
 <allocations>
   <queue name="marketing">
     <weight>2.0</weight>
@@ -261,7 +258,6 @@ preemption을 활성화하기 위해서는 `yarn-site.xml`에 아래 설정을 �
 Queue에 적용 가능한 옵션은 `fairSharePreemptionThreshold`와 `fairSharePreemptionTimeout`이다. Preemption은  `Ìnstantaneous FairShare` < `Steady FairShare * fairSharePreemptionThreshold` 인 상태가 `fairSharePreemptionTimeout`만큼 지속되면 발생한다.
 
 ```
-<?xml version="1.0"?>
 <allocations>
   <queue name="marketing">
     <weight>4.0</weight>
