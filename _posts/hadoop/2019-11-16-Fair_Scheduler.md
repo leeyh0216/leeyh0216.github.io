@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Apache Hadoop - Fair Scheduler"
-date:   2019-11-16 14:00:00 +0900
+title: "Apache Hadoop - Fair Scheduler"
+date: 2019-11-16 14:00:00 +0900
 author: leeyh0216
 tags:
 - apache-hadoop
