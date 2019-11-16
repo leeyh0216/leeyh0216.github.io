@@ -147,7 +147,7 @@ Queue의 Resource를 제한하는 방법에는 `minResources`와 `maxResources`�
 
 위의 `minResources`의 단점 중, `minResources`가 FairShare를 넘어서는 경우 다른 Queue의 Fair Share에도 영향을 미친다는 내용이 있었다.
 
-이를 테스트하기 위해, fair scheduler의 옵션을 아래오 같이 변경하였다.
+이를 테스트하기 위해, fair scheduler의 옵션을 아래와 같이 변경하였다.
 
 ```
 <allocations>
@@ -205,6 +205,7 @@ Queue에서 동작하는 Application의 수를 제어하고 싶은 경우, `maxR
   <queueMaxAMShareDefault>0.5</queueMaxAMShareDefault>
 </allocations>
 ```
+
 `marketing` Queue의 `maxRunningApps`를 0으로 설정한 후 Application을 실행해보았다.
 
 ![Max App Running 0](../assets/hadoop/../../../assets/hadoop/max_app_running_0.png)
@@ -258,6 +259,7 @@ preemption을 활성화하기 위해서는 `yarn-site.xml`에 아래 설정을 �
 Queue에 적용 가능한 옵션은 `fairSharePreemptionThreshold`와 `fairSharePreemptionTimeout`이다. Preemption은  `Ìnstantaneous FairShare` < `Steady FairShare * fairSharePreemptionThreshold` 인 상태가 `fairSharePreemptionTimeout`만큼 지속되면 발생한다.
 
 ```
+<?xml version="1.0"?>
 <allocations>
   <queue name="marketing">
     <weight>4.0</weight>
@@ -282,7 +284,7 @@ Queue에 적용 가능한 옵션은 `fairSharePreemptionThreshold`와 `fairShare
 
 ![Preemption 0](../assets/hadoop/../../../assets/hadoop/preemption0.png)
 
-이 상태에서 `development` Queue에 Application을 실행하는 경우, 일시적으로 `marketing` Queue가 자신의 Steady Fair Share보다 더 많은 Instantaneous Fair Share보다 많은 리소스를 할당받은 `Over Fair Share` 상태가 된다.
+이 상태에서 `development` Queue에 Application을 실행하는 경우, 일시적으로 `marketing` Queue가 자신의 Steady Fair Share보다 더 많은 Instantaneous Fair Share보다 많은 리소스를 할당받은 `Over Fair Share` 상태가 된다.
 
 ![Preemption 1](../assets/hadoop/../../../assets/hadoop/preemption1.png)
 
