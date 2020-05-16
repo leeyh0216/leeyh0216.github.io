@@ -152,7 +152,7 @@ set -o monitor
 ./child.sh
 ```
 
-자식 프로세스 실행 전 `set -o monitor` 명령어를 사용하면 자식 프로세스 실행 시 PGID를 자식 프로세스의 PID로 변경할 수 있다.(`set -o monitor` 기능은 bash manual의 Job Control을 확인)
+자식 프로세스 실행 전 `set -o monitor` 명령어를 사용하면 자식 프로세스 실행 시 PGID를 자식 프로세스의 PID로 변경할 수 있다.(`set -o monitor` 명령어의 자세한 내용은 bash manual의 Job Control을 확인)
 
 `parent.sh` 스크립트 실행 후 `ps -A -o pid,ppid,pgid,sid,command` 명령을 수행해보자.
 
