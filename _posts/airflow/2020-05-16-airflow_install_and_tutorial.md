@@ -8,6 +8,9 @@ tags:
 - airflow
 ---
 
+* **Airflow 튜토리얼 실행해보기**
+* [Airflow 기본 개념 - DAG와 Operator](https://leeyh0216.github.io/2020-05-16/airflow_concept_dag_operator)
+
 # 개요
 
 Airflow를 사용할 일이 많아질 것 같아 사용법 정리 포스팅을 진행한다.

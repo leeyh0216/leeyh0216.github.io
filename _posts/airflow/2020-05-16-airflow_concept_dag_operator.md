@@ -4,9 +4,11 @@ title:  "Airflow 기본 개념 - DAG와 Operator"
 date:   2020-05-16 23:00:00 +0900
 author: leeyh0216
 tags:
-- docker
 - airflow
 ---
+
+* [Airflow 튜토리얼 실행해보기](https://leeyh0216.github.io/2020-05-16/airflow_install_and_tutorial)
+* **Airflow 기본 개념 - DAG와 Operator**
 
 # 개요
 
