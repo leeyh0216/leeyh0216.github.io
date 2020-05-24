@@ -7,6 +7,9 @@ tags:
 - java
 ---
 
+* **Java NIO - 1. 왜 자바의 IO 패키지는 느린가?**
+* [Java NIO - 2. Buffers](https://leeyh0216.github.io/2020-05-24/java_nio_buffer)
+
 # 개요
 
 요즘 Druid, Kafka 등의 오픈소스를 보면 Java NIO를 사용하는 프로젝트들이 참 많다.
