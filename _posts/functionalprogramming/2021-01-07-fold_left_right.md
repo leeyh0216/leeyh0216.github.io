@@ -49,9 +49,9 @@ Fold는 어떤 방향으로 함수를 적용할 지에 따라 Left Fold와 Right
 * Fold Left: **마지막 요소를 제외한** 요소들을 재귀적으로 처리한 결과와 마지막 요소를 결합
 * Fold Right: **첫번째 요소를 제외한** 요소들을 재귀적으로 처리한 결과와 첫번째 요소를 결합
 
-### Tail Recursion과 Fold
+### Fold의 구현
 
-임의의 양의 정수 N이 주어졌을 때, N ~ 1까지 더하는 함수를 Fold Left와 Fold Right의 정의에 따라 구현해보자.
+FoldLeft와 FoldRight의 정의에 따라 각각의 함수를 구현해본다.
 
 **Fold Left**
 
@@ -73,6 +73,36 @@ def foldRight[A, B](combine: (A, B) => B, initialValue: B)(list: List[A]): B = {
     else
         combine(list.head, foldRight(combine, initialValue)(list.tail))
 }
+{% endhighlight %}
+
+#### Scala에서의 FoldLeft와 FoldRight의 구현
+
+위와 같이 구현하는 경우 slice 함수나 재귀 함수 호출로 인한 속도 저하 문제가 발생한다.
+
+Scala에서는 FoldLeft와 FoldRight을 아래와 같이 처리한다.
+
+**Fold Left**
+
+재귀함수 호출보다는 while문을 통해 head부터 tail까지 차례대로 처리한다. 함수형 언어이지만 실제 내부는 최적화를 위해 명령형으로 구현되었다.
+
+{% highlight scala %}
+def foldLeft[B](z: B)(op: (B, A) => B): B = {
+  var acc = z
+  var these = this
+  while(!these.isEmpty) {
+    acc = op(acc, these.head)
+    these = these.tail
+  }
+  acc
+}
+{% endhighlight %}
+
+**Fold Right**
+
+Fold Right는 List를 Reverse 한 뒤 Fold Left를 적용해버린다.
+
+{% highlight scala %}
+def foldRight[B](z: B)(op: (A, B) => B): B = reverse.foldLeft(z)((right, left) => op(left, right))
 {% endhighlight %}
 
 ### Combining Function별 차이(asymmetrical vs symmetrical)
