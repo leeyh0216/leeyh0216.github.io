@@ -15,7 +15,7 @@ categories:
 
 ## `pipeline.object_reuse`를 사용하면 안되는 경우
 
-![Pipe1](../../assets/flink/pipe1.png)
+![Pipe 1](../../assets/flink/pipe1.png)
 
 `pipeline.object_reuse`를 사용하면 안되는 경우는 같은 Operator Chain에서 한 Operator의 출력에 두 개 이상의 Operator가 연결되는 경우이다. 코드는 아래와 같다.
 
