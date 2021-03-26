@@ -66,7 +66,7 @@ P2: 14
 
 P1의 값들은 정상적으로 1씩 증가했으나, P2의 값들은 10이 아닌 11씩 증가한 것을 볼 수 있다. Object Reuse 옵션을 적용했기 때문에 P1과 P2의 작업들이 동일한 객체에 1과 10을 각각 더했기 때문에 위와 같이 출력되는 것이다.
 
-내부적으로 Input Operator의 Output으로 `CopyingBroadcastingOutputCollector`가 사용된다. `CopyingBroadcastingOutputCollector`는 하나의 레코드를 여러 Operator에 전달할 때 사용한다.
+위의 `input` 객체에 연결된 Output의 타입은 `CopyingBroadcastingOutputCollector`이다. `CopyingBroadcastingOutputCollector`는 하나의 레코드를 여러 Operator에 전달할 때 사용한다. `CopyingBroadcastingOutputCollector`는 이전 Operator에 연결된 다수의 Operator들에게 데이터를 전달하기 위해 아래와 같은 코드를 수행한다.
 
 {% highlight java %}
 @Override
@@ -81,7 +81,9 @@ public void collect(StreamRecord<T> record) {
 }  
 {% endhighlight %}
 
-위 코드는 `CopyingBroadcastingOutputCollector`의 `collect` 메서드이다. 이전 Operator에 연결된 Operator들에게 데이터를 전달하기 위해 Output 객체(동일 OperatorChain에 있기 때문에 `ChainingOutput`)의 `collect` 함수를 호출한다. 이 때 `StreamRecord` 객체만 새로 만들 뿐 실제 값을 담고 있는 객체(`record.getValue()`)를 사용하고, `ChainingOutput`에서도 별다른 복사 과정 없이 그대로 다음 Operator의 `processElement`를 호출해버리기 때문에 문제가 발생하는 것이다.
+> 같은 OperatorChain에 속하기 때문에 for문 내에서의 Output의 타입은 `ChainingOutput`이다(`pipeline.object_reuse` 옵션이 적용 되었기 때문에 `CopyingChainingOutput`이 아닌 `ChainingOutput`). `ChainingOutput`은 `CopyingChainingOutput`과 다르게 Deep Copy하지 않고 Input의 `processElement`를 실행한다.
+
+이 때 `StreamRecord` 객체만 새로 만들 뿐 실제 값을 담고 있는 객체(`record.getValue()`)를 사용하고, `ChainingOutput`에서도 별다른 복사 과정 없이 그대로 다음 Operator의 `processElement`를 호출해버리기 때문에 문제가 발생하는 것이다.
 
 ## 그래도 성능을 위해 `pipeline.object_reuse`를 사용하고 싶다면?
 
