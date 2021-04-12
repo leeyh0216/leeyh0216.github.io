@@ -22,8 +22,8 @@ jobs:
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 2.6
-          bundler-cache: true
+          ruby-version: 2.7
+          bundler-cache: false
 
       - name: Check baseurl
         run: |
