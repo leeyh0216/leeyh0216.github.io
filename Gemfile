@@ -1,11 +1,8 @@
+# frozen_string_literal: true
+
 source "https://rubygems.org"
 
-gem "jekyll-theme-chirpy", "~> 3.3"
-
-group :jekyll_plugins do
-  # If you have any plugins, put them here!
-  # gem "jekyll-xxx", "~> x.y"
-end
+gemspec
 
 group :test do
   gem "html-proofer", "~> 3.18"
