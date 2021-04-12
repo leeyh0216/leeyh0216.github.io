@@ -82,7 +82,7 @@ public class Singleton {
     System.out.println("Simple singleton instance initialized.");
   }
 }
-{% endhighlight}
+{% endhighlight %}
 
 **Test.java**
 {% highlight java %}
