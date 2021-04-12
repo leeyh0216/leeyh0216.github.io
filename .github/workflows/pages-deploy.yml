@@ -19,15 +19,9 @@ jobs:
         with:
           fetch-depth: 0  # for posts's lastmod
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+      - uses:  helaili/jekyll-action@v2
         with:
-          ruby-version: 2.7
-          bundler-cache: false
-      
-      - name: Install jekyll
-        run: |
-          gem install jekyll
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check baseurl
         run: |
