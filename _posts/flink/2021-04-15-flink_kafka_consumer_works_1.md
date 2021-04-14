@@ -213,55 +213,55 @@ public void run() {
 
 > `KafkaConsumerThread`는 Kafka Broker로부터 Pull한 데이터를 `Handover`의 `produce` 호출을 통해 `KafkaFetcher`에게 전달하려 하고, `KafkaFetcher`는 `Handover`의 `pollNext` 호출을 통해 `KafkaConsumerThread`가 넣어놓은 데이터가 있다면 가져가려는 상황
 
-1. `KafkaConsumerThread`가 Kafka Broker로부터 데이터를 가져와 `Handover`의 `produce` 호출. `KafkaConsumerThread`가 `Handover`의 lock을 획득하여 Critical Section에 진입.
+1.`KafkaConsumerThread`가 Kafka Broker로부터 데이터를 가져와 `Handover`의 `produce` 호출. `KafkaConsumerThread`가 `Handover`의 lock을 획득하여 Critical Section에 진입.
 
 ![Handover1](../../assets/flink/handover1.png)
 
-2. `KafkaFetcher`가 1과 동시에 `Handover`의 `pollNext` 호출. `KafkaFetcher`는 `Handover`의 lock을 획득하려 하나 이미 `KafkaConsumerThread`가 lock을 선점하고 있기 때문에 Critical Section에 들어가지 못하고 Blocking
+2.`KafkaFetcher`가 1과 동시에 `Handover`의 `pollNext` 호출. `KafkaFetcher`는 `Handover`의 lock을 획득하려 하나 이미 `KafkaConsumerThread`가 lock을 선점하고 있기 때문에 Critical Section에 들어가지 못하고 Blocking
 
 ![Handover2](../../assets/flink/handover2.png)
 
-3. `KafkaConsumerThread`에서 `Handover`의 `records`에 Kafka Broker로부터 Pull했던 데이터를 할당. 작업이 완료되었으므로 lock을 반환하고 다음 데이터를 Fetch하러 감
+3.`KafkaConsumerThread`에서 `Handover`의 `records`에 Kafka Broker로부터 Pull했던 데이터를 할당. 작업이 완료되었으므로 lock을 반환하고 다음 데이터를 Fetch하러 감
 
 ![Handover3](../../assets/flink/handover3.png)
 
-4. 3번째 Step에서 `KafkaConsumerThread`가 lock을 반환했기 때문에, `KafkaFetcher`는 lock 획득에 성공하여 Critical Section에 진입. 
+4.3번째 Step에서 `KafkaConsumerThread`가 lock을 반환했기 때문에, `KafkaFetcher`는 lock 획득에 성공하여 Critical Section에 진입. 
 
 ![Handover4](../../assets/flink/handover4.png)
 
-5. `KafkaFetcher`는 `records`에 데이터가 있는 것(`KafkaConsumerThread`가 넣어준)을 확인하고 이를 가져감. 또한 lock은 반환함
+5.`KafkaFetcher`는 `records`에 데이터가 있는 것(`KafkaConsumerThread`가 넣어준)을 확인하고 이를 가져감. 또한 lock은 반환함
 
 ![Handover5](../../assets/flink/handover5.png)
 
-6. `KafkaConsumerThread`의 데이터 Pull이 오래 걸리는 상황에서 `KafkaFetcher`가 이전 Step의 모든 데이터 처리. 이에 `KafkaFetcher`는 다시 `Handover`의 `pollNext` 호출
+6.`KafkaConsumerThread`의 데이터 Pull이 오래 걸리는 상황에서 `KafkaFetcher`가 이전 Step의 모든 데이터 처리. 이에 `KafkaFetcher`는 다시 `Handover`의 `pollNext` 호출
 
-7. `KafkaFetcher`는 `Handover`의 lock을 획득하고 `records`를 확인하지만 데이터가 존재하지 않음(null). 이에 `lock`의 `wait`을 호출하여 대기 상태로 진입
+7.`KafkaFetcher`는 `Handover`의 lock을 획득하고 `records`를 확인하지만 데이터가 존재하지 않음(null). 이에 `lock`의 `wait`을 호출하여 대기 상태로 진입
 
 ![Handover7](../../assets/flink/handover7.png)
 
-8. `KafkaConsumerThread`가 Kafka Broker로부터 데이터 Pull 완료. `Handover`의 `produce` 호출
+8.`KafkaConsumerThread`가 Kafka Broker로부터 데이터 Pull 완료. `Handover`의 `produce` 호출
 
-9. 7번째 Step에서 `KafkaFetcher`가 `lock`의 `wait`을 호출하며 `lock` 소유권을 반환했기 때문에 `KafkaConsumerThread`가 lock을 획득하며 Critical Section 진입.
+9.7번째 Step에서 `KafkaFetcher`가 `lock`의 `wait`을 호출하며 `lock` 소유권을 반환했기 때문에 `KafkaConsumerThread`가 lock을 획득하며 Critical Section 진입.
 
 ![Handover9](../../assets/flink/handover9.png)
 
-10. `KafkaConsumerThread`는 자신이 Kafka Broker로부터 Pull한 데이터를 `records`에 할당. 이후 `lock`의 `notifyAll`을 호출하며 종료
+10.`KafkaConsumerThread`는 자신이 Kafka Broker로부터 Pull한 데이터를 `records`에 할당. 이후 `lock`의 `notifyAll`을 호출하며 종료
 
 ![Handover10](../../assets/flink/handover10.png)
 
-11. `KafkaFetcher`는 10번째 Step에서 호출된 `notifyAll`에 의해 WAIT에서 RUNNING 상태로 진입. 5번째 Step 반복
+11.`KafkaFetcher`는 10번째 Step에서 호출된 `notifyAll`에 의해 WAIT에서 RUNNING 상태로 진입. 5번째 Step 반복
 
-12. `KafkaConsumerThread`가 1, 3번째 Step 수행
+12.`KafkaConsumerThread`가 1, 3번째 Step 수행
 
-13. `KafkaFetcher`의 수행이 늦어져 `KafkaConsumerThread`는 다시 한번 1번째 Step 수행. 그러나 `records`에 아직 가져가지 않은 데이터가 존재하는 것을 확인하여 `lock`의 `wait`을 호출하여 대기 상태로 진입
+13.`KafkaFetcher`의 수행이 늦어져 `KafkaConsumerThread`는 다시 한번 1번째 Step 수행. 그러나 `records`에 아직 가져가지 않은 데이터가 존재하는 것을 확인하여 `lock`의 `wait`을 호출하여 대기 상태로 진입
 
-14. `KafkaFetcher`의 데이터 처리가 완료되어 `Handover`의 `pollNext` 호출
+14.`KafkaFetcher`의 데이터 처리가 완료되어 `Handover`의 `pollNext` 호출
 
-15. 13번째 Step에서 `KafkaConsumerThread`가 `lock`의 `wait`을 호출하며 `lock`의 소유권을 반환했기 때문에 `KafkaFetcher`가 lock을 획득하며 Critical Section 진입
+15.13번째 Step에서 `KafkaConsumerThread`가 `lock`의 `wait`을 호출하며 `lock`의 소유권을 반환했기 때문에 `KafkaFetcher`가 lock을 획득하며 Critical Section 진입
 
-16. `KafkaFetcher`는 5번 Step을 반복. 이 때 `lock`의 `notifyAll`을 호출
+16.`KafkaFetcher`는 5번 Step을 반복. 이 때 `lock`의 `notifyAll`을 호출
 
-17. `KafkaConsumerThread`는 16번째 Step에서 호출된 `notifyAll`에 의해 WAIT에서 RUNNING 상태로 진입. 1, 3번째 Step 진행
+17.`KafkaConsumerThread`는 16번째 Step에서 호출된 `notifyAll`에 의해 WAIT에서 RUNNING 상태로 진입. 1, 3번째 Step 진행
 
 위 과정을 코드로 살펴보면 아래와 같다.
 
