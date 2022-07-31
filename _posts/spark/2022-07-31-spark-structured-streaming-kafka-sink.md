@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Apache Spark - Spark Structured Streaming Kafka Sink는 Exactly-Once를 지원하지 않는다"
-date:   2022-07-31 14:00:00 +0900
+date:   2022-07-31 13:00:00 +0900
 author: leeyh0216
 tags:
 - apache-spark
@@ -218,3 +218,5 @@ Spark에서 Custom Connector를 구현하기 위해서는 [DataWriter](https://g
 만일 Kafka Sink에서 반드시 Exactly Once를 지원해야 한다면 [Apache Flink와 같이 2PC](https://flink.apache.org/features/2018/03/01/end-to-end-exactly-once-apache-flink.html)를 지원하는 프레임워크를 사용하는 방법 밖에 없다.
 
 물론 Spark에서도 동일 Key에 대한 State를 유지하여 중복 제거를 하라곤 하지만... 잘 될까..?
+
+추가로 commit을 사용하지 않기 때문에, 뒤 쪽의 Consumer는 read_committed로 읽으면 안된다. 다만 Micro Batch임에도 불구하고 TX를 사용하지 않기 때문에, 마치 Continous Streaming 처럼 보인다는 것은 덤인 것 같다.
