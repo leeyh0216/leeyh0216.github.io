@@ -9,4 +9,6 @@ order: 4
 # 경력
 
 * 2017.01 ~ 2020.05: NCSOFT Data Engineer
-* 2020.05 ~ : KAKAO Data Engineer
+* 2020.05 ~ 2021.06: KAKAO Data Engineer
+* 2021.06 ~ 2022.11: NCSOFT Data Engineer
+* 2022.11 ~ : SK Telecom Data Engineer 
