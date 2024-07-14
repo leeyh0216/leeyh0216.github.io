@@ -1,0 +1,341 @@
+<!DOCTYPE html><html lang="ko-KR" ><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"> <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8829030678254956" crossorigin="anonymous"></script><meta name="pv-proxy-endpoint" content=""><meta name="generator" content="Jekyll v4.2.0" /><meta property="og:title" content="Spring IoC Container - Container, Bean overview" /><meta name="author" content="leeyh0216" /><meta property="og:locale" content="ko_KR" /><meta name="description" content="The IoC Container Introduction to the Spring IoC Container and Beans Inversion of Control(IoC, 제어의 역전)은 Dependency Injection(DI, 의존성 주입)로도 알려져 있다. 객체는 자신이 동작하는데에 필요한 의존성(객체)을 생성자 팩토리 메서드의 인자 Setter 를 통해 설정할 수 있도록 한다. Container는 객체를 생성할 때 의존성들을 위에서 정의한 방법으로 주입해준다. 객체가 자신의 초기화나 의존성의 설정을 스스로 하는 것이 아니라 Container에 위임하는 방식이기 때문에 제어의 역전이라고 불리우는 것이다. org.springframework.beans와 org.springframework.context 패키지가 Spring Framework의 IoC Container의 기반을 제공한다. 이 중 BeanFactory 인터페이스는 객체를 관리하는 매커니즘을 제공하고, ApplicationContext는 BeanFactory 를 상속받은 하위 인터페이스로써, AOP Message Resource Handling Event Publication WebApplicationContext와 같은 Application-Layer Specific Context 등의 엔터프라이즈 기능을 추가적으로 제공한다. Spring에서 Application을 구성하는 객체들은 Spring IoC Container에 의해 관리되며, Bean이라고 불린다. Bean은 Spring IoC Container에 의해 초기화, 조합, 관리된다. 또한 Bean과 Bean을 구성하는 의존성들은 Container에게는 Configuration metadata로 표현된다. Container Overview org.springframework.context.ApplicationContext는 Spring IoC Container를 대표하는 인터페이스로써 앞에서 언급한 Bean의 생성, 구성, 조합을 담당한다. Container는 어떤 객체를 초기화하고 구성하고 조합할지를 Congiruation metadata를 사용해서 수행한다. Configuration metadata는 XML, Java Annotations, Java Code 등의 다양한 포맷으로 존재한다. XML 방식이 전통적인 Congiruation metadata 표현 방식이지만, Java Annotations나 Java Code로도 Configuration metadata를 표현할 수 있다. Spring Boot Application을 공부하려는 목적이 크기 때문에, XML이나 Application Context를 직접 초기화하는 방법은 시도하지 않은 예정이다. Bean Overview Container는 Bean을 관리할 때 BeanDefinition이라는 객체를 이용하여 관리한다. BeanDefinition 안에는 다음과 같은 속성들이 있다. package-qualified class name: Bean을 정의할 실제 구현 클래스 Container에서의 Bean의 동작 상태(scope, lifecycle callbacks 등) Bean이 동작하는데 필요한 다른 Bean(collaborators 나 dependencies로 불림) @Component로 생성된 Bean의 Bean Definition “HelloWorld!!” 를 출력하는 서비스를 아래와 같이 인터페이스와 구현 클래스를 만들었다. IHelloService.class 1 2 3 4 5 6 package com.leeyh0216.springframeworkstudy.beandefinition; public interface IHelloService { void printHelloWorld(); } HelloServiceImpl.class 1 2 3 4 5 6 7 8 9 10 11 12 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.stereotype.Component; @Component(&quot;HelloService&quot;) public class HelloServiceImpl implements IHelloService{ @Override public void printHelloWorld() { System.out.println(&quot;Hello World!!&quot;); } } 그리고 위에서 정의된 HelloServiceImpl Bean을 스캔할 수 있도록 Configuration 클래스를 아래와 같이 생성하였다. ApplicationConfiguration.class 1 2 3 4 5 6 7 8 9 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.context.annotation.ComponentScan; import org.springframework.context.annotation.Configuration; @Configuration @ComponentScan(&quot;com.leeyh0216.springframeworkstudy.beandefinition&quot;) public class ApplicationConfiguration { } 아래와 같이 메인 함수를 작성하여 실행시켜보면 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.beans.factory.config.BeanDefinition; import org.springframework.context.annotation.AnnotationConfigApplicationContext; public class Application { public static void main(String[] args){ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(ApplicationConfiguration.class); BeanDefinition beanDefinition = applicationContext.getBeanDefinition(&quot;HelloService&quot;); System.out.println(&quot;Bean class name: &quot; + beanDefinition.getBeanClassName()); System.out.println(&quot;Bean Scope: &quot; + beanDefinition.getScope()); System.out.println(&quot;Bean constructor argument values: &quot; + beanDefinition.getConstructorArgumentValues()); System.out.println(&quot;Bean depends on &quot; + beanDefinition.getDependsOn()); System.out.println(&quot;Is lazy init bean? &quot; + beanDefinition.isLazyInit()); System.out.println(&quot;Has bean property values? &quot; + beanDefinition.hasPropertyValues()); } } 다음과 같은 출력이 발생한다. 1 2 3 4 5 6 Bean class name: com.leeyh0216.springframeworkstudy.beandefinition.HelloServiceImpl Bean Scope: singleton Bean constructor argument values: org.springframework.beans.factory.config.ConstructorArgumentValues@cb Bean depends on null Is lazy init bean? false Has bean property values? false 대부분의 정보가 정상적으로 출력되는 것을 알 수 있다. Factory 메소드로 생성된 Bean의 Bean Definition 위의 예제를 약간 수정하여 Factory Method로 Bean을 생성하도록 하였다. HelloServiceImpl.class 1 2 3 4 5 6 7 8 9 package com.leeyh0216.springframeworkstudy.beandefinition; public class HelloServiceImpl implements IHelloService{ @Override public void printHelloWorld() { System.out.println(&quot;Hello World!!&quot;); } } HelloServiceImpl 클래스의 경우 @Component 어노테이션을 없애서 자동으로 Bean으로 생성되는 것을 방지하였다. ApplicationConfiguration.class 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.context.annotation.Bean; import org.springframework.context.annotation.ComponentScan; import org.springframework.context.annotation.Configuration; @Configuration @ComponentScan(&quot;com.leeyh0216.springframeworkstudy.beandefinition&quot;) public class ApplicationConfiguration { @Bean(&quot;HelloService&quot;) public IHelloService getIHelloService(){ return new HelloServiceImpl(); } } ApplicationConfiguration.class에서는 IHelloService Bean을 생성할 수 있는 Factory Method를 만들었다. 위 변경된 사항으로 다시 메인 함수를 실행했을 경우 아래와 같은 출력이 발생하는 것을 알 수 있다. 1 2 3 4 5 6 Bean class name: null Bean Scope: Bean constructor argument values: org.springframework.beans.factory.config.ConstructorArgumentValues@cb Bean depends on null Is lazy init bean? false Has bean property values? false Factory Method로 생성한 Bean 정보의 행방 Factory Method로 생성한 Bean의 경우 기본 정보(Bean의 클래스명, Scope)가 null로 표기된다. 이러한 정보들은 어디에 있을까? Breakpoint를 잡아 BeanDefinition 객체를 확인해 보았다. beanDefinition 객체의 factoryMethodMetadata 내부에 어느정도 Bean Definition에 관련된 내용을 확인할 수 있는 것을 알 수 있다. 다만, Scope 등의 정보는 여기에도 없다. 하지만 Scope를 설정해주지 않고도 정상 동작하는 것과, 여러 번의 객체 생성을 시도하여도 동일 객체가 반환되는 것을 보면 역시 기본 Scope인 Singleton으로 동작하는 것을 확인할 수 있었다. 다만 @Component, @Service 등의 어노테이션을 붙여 Bean으로 만든 경우에는 아래와 같이 BeanDefinition에 설정한 정보들이 정상적으로 들어있는 것을 알 수 있다. Naming Beans 모든 Bean들은 1개 이상의 식별자를 가진다. Container가 Bean들을 관리하기 위해서는 이 식별자가 유일해야 한다. @Component 어노테이션을 확인해보면 다음과 같이 value가 이름을 나타내는 것을 볼 수 있다. 1 2 3 4 5 6 /** * The value may indicate a suggestion for a logical component name, * to be turned into a Spring bean in case of an autodetected component. * @return the suggested component name, if any (or empty String otherwise) */ String value() default &quot;&quot;; 아래와 같은 예제를 작성해 보았다. ISimpleService.class 1 2 3 4 5 6 package com.leeyh0216.springframeworkstudy.namingbeans; public interface ISimpleService { void printVersion(); } SimpleServiceImplV1.class 1 2 3 4 5 6 7 8 9 10 11 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.stereotype.Component; @Component public class SimpleServiceImplV1 implements ISimpleService { @Override public void printVersion() { System.out.println(&quot;V1&quot;); } } SimpleServiceImplV2.class 1 2 3 4 5 6 7 8 9 10 11 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.stereotype.Component; @Component(&quot;SimpleServiceImpl&quot;) public class SimpleServiceImplV2 implements ISimpleService{ @Override public void printVersion() { System.out.println(&quot;V2&quot;); } } SimpleServiceImplV3.class 1 2 3 4 5 6 7 8 package com.leeyh0216.springframeworkstudy.namingbeans; public class SimpleServiceImplV3 implements ISimpleService { @Override public void printVersion() { System.out.println(&quot;V3&quot;); } } ApplicationConfiguration.class 1 2 3 4 5 6 7 8 9 10 11 12 13 14 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.context.annotation.Bean; import org.springframework.context.annotation.ComponentScan; import org.springframework.context.annotation.Configuration; @Configuration @ComponentScan(&quot;com.leeyh0216.springframeworkstudy.namingbeans&quot;) public class ApplicationConfiguration { @Bean(name={&quot;NewSimpleService&quot;,&quot;SimpleServiceV3&quot;}) public SimpleServiceImplV3 getSimpleServiceImplV3(){ return new SimpleServiceImplV3(); } } Application.class 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.context.annotation.AnnotationConfigApplicationContext; public class Application { public static void main(String[] args){ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(ApplicationConfiguration.class); ISimpleService b1 = applicationContext.getBean(&quot;simpleServiceImplV1&quot;, SimpleServiceImplV1.class); b1.printVersion(); ISimpleService b2 = applicationContext.getBean(&quot;SimpleServiceImpl&quot;, SimpleServiceImplV2.class); b2.printVersion(); ISimpleService b3_1 = applicationContext.getBean(&quot;NewSimpleService&quot;, SimpleServiceImplV3.class); b3_1.printVersion(); ISimpleService b3_2 = applicationContext.getBean(&quot;SimpleServiceV3&quot;, SimpleServiceImplV3.class); b3_2.printVersion(); } } SimpleServiceImplV1 클래스와 같이 이름을 지정하지 않은 경우 클래스명의 첫번째 문자를 소문자로 변경하고, Camel Case화 시켜서 이름으로 간주한다. SimpleServiceImplV2 클래스와 같이 이름을 명시적으로 지정하는 경우, 해당 이름을 사용하여 Bean을 찾을 수 있다. SimpleServiceImplV3 클래스의 경우 다른 클래스와 달리 팩토리 메서드로 생성했으며, @Bean 어노테이션이 사용되었다. @Bean 어노테이션의 경우 1개 이상의 이름을 지정할 수 있도록 되어 있다. 때문에 NewSimpleService, SimpleServiceV3 등으로 Bean을 접근하여도 동일한 Bean이 반환되는 것을 확인할 수 있다. @Bean 어노테이션의 name이 아래와 같이 지정되어 있기 때문에 1개 이상의 식별자를 사용할 수 있는 것으로 보인다. 1 2 3 4 5 6 7 8 9 10 /** * The name of this bean, or if several names, a primary bean name plus aliases. * &lt;p&gt;If left unspecified, the name of the bean is the name of the annotated method. * If specified, the method name is ignored. * &lt;p&gt;The bean name and aliases may also be configured via the {@link #value} * attribute if no other attributes are declared. * @see #value */ @AliasFor(&quot;value&quot;) String[] name() default {};" /><meta property="og:description" content="The IoC Container Introduction to the Spring IoC Container and Beans Inversion of Control(IoC, 제어의 역전)은 Dependency Injection(DI, 의존성 주입)로도 알려져 있다. 객체는 자신이 동작하는데에 필요한 의존성(객체)을 생성자 팩토리 메서드의 인자 Setter 를 통해 설정할 수 있도록 한다. Container는 객체를 생성할 때 의존성들을 위에서 정의한 방법으로 주입해준다. 객체가 자신의 초기화나 의존성의 설정을 스스로 하는 것이 아니라 Container에 위임하는 방식이기 때문에 제어의 역전이라고 불리우는 것이다. org.springframework.beans와 org.springframework.context 패키지가 Spring Framework의 IoC Container의 기반을 제공한다. 이 중 BeanFactory 인터페이스는 객체를 관리하는 매커니즘을 제공하고, ApplicationContext는 BeanFactory 를 상속받은 하위 인터페이스로써, AOP Message Resource Handling Event Publication WebApplicationContext와 같은 Application-Layer Specific Context 등의 엔터프라이즈 기능을 추가적으로 제공한다. Spring에서 Application을 구성하는 객체들은 Spring IoC Container에 의해 관리되며, Bean이라고 불린다. Bean은 Spring IoC Container에 의해 초기화, 조합, 관리된다. 또한 Bean과 Bean을 구성하는 의존성들은 Container에게는 Configuration metadata로 표현된다. Container Overview org.springframework.context.ApplicationContext는 Spring IoC Container를 대표하는 인터페이스로써 앞에서 언급한 Bean의 생성, 구성, 조합을 담당한다. Container는 어떤 객체를 초기화하고 구성하고 조합할지를 Congiruation metadata를 사용해서 수행한다. Configuration metadata는 XML, Java Annotations, Java Code 등의 다양한 포맷으로 존재한다. XML 방식이 전통적인 Congiruation metadata 표현 방식이지만, Java Annotations나 Java Code로도 Configuration metadata를 표현할 수 있다. Spring Boot Application을 공부하려는 목적이 크기 때문에, XML이나 Application Context를 직접 초기화하는 방법은 시도하지 않은 예정이다. Bean Overview Container는 Bean을 관리할 때 BeanDefinition이라는 객체를 이용하여 관리한다. BeanDefinition 안에는 다음과 같은 속성들이 있다. package-qualified class name: Bean을 정의할 실제 구현 클래스 Container에서의 Bean의 동작 상태(scope, lifecycle callbacks 등) Bean이 동작하는데 필요한 다른 Bean(collaborators 나 dependencies로 불림) @Component로 생성된 Bean의 Bean Definition “HelloWorld!!” 를 출력하는 서비스를 아래와 같이 인터페이스와 구현 클래스를 만들었다. IHelloService.class 1 2 3 4 5 6 package com.leeyh0216.springframeworkstudy.beandefinition; public interface IHelloService { void printHelloWorld(); } HelloServiceImpl.class 1 2 3 4 5 6 7 8 9 10 11 12 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.stereotype.Component; @Component(&quot;HelloService&quot;) public class HelloServiceImpl implements IHelloService{ @Override public void printHelloWorld() { System.out.println(&quot;Hello World!!&quot;); } } 그리고 위에서 정의된 HelloServiceImpl Bean을 스캔할 수 있도록 Configuration 클래스를 아래와 같이 생성하였다. ApplicationConfiguration.class 1 2 3 4 5 6 7 8 9 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.context.annotation.ComponentScan; import org.springframework.context.annotation.Configuration; @Configuration @ComponentScan(&quot;com.leeyh0216.springframeworkstudy.beandefinition&quot;) public class ApplicationConfiguration { } 아래와 같이 메인 함수를 작성하여 실행시켜보면 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.beans.factory.config.BeanDefinition; import org.springframework.context.annotation.AnnotationConfigApplicationContext; public class Application { public static void main(String[] args){ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(ApplicationConfiguration.class); BeanDefinition beanDefinition = applicationContext.getBeanDefinition(&quot;HelloService&quot;); System.out.println(&quot;Bean class name: &quot; + beanDefinition.getBeanClassName()); System.out.println(&quot;Bean Scope: &quot; + beanDefinition.getScope()); System.out.println(&quot;Bean constructor argument values: &quot; + beanDefinition.getConstructorArgumentValues()); System.out.println(&quot;Bean depends on &quot; + beanDefinition.getDependsOn()); System.out.println(&quot;Is lazy init bean? &quot; + beanDefinition.isLazyInit()); System.out.println(&quot;Has bean property values? &quot; + beanDefinition.hasPropertyValues()); } } 다음과 같은 출력이 발생한다. 1 2 3 4 5 6 Bean class name: com.leeyh0216.springframeworkstudy.beandefinition.HelloServiceImpl Bean Scope: singleton Bean constructor argument values: org.springframework.beans.factory.config.ConstructorArgumentValues@cb Bean depends on null Is lazy init bean? false Has bean property values? false 대부분의 정보가 정상적으로 출력되는 것을 알 수 있다. Factory 메소드로 생성된 Bean의 Bean Definition 위의 예제를 약간 수정하여 Factory Method로 Bean을 생성하도록 하였다. HelloServiceImpl.class 1 2 3 4 5 6 7 8 9 package com.leeyh0216.springframeworkstudy.beandefinition; public class HelloServiceImpl implements IHelloService{ @Override public void printHelloWorld() { System.out.println(&quot;Hello World!!&quot;); } } HelloServiceImpl 클래스의 경우 @Component 어노테이션을 없애서 자동으로 Bean으로 생성되는 것을 방지하였다. ApplicationConfiguration.class 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.context.annotation.Bean; import org.springframework.context.annotation.ComponentScan; import org.springframework.context.annotation.Configuration; @Configuration @ComponentScan(&quot;com.leeyh0216.springframeworkstudy.beandefinition&quot;) public class ApplicationConfiguration { @Bean(&quot;HelloService&quot;) public IHelloService getIHelloService(){ return new HelloServiceImpl(); } } ApplicationConfiguration.class에서는 IHelloService Bean을 생성할 수 있는 Factory Method를 만들었다. 위 변경된 사항으로 다시 메인 함수를 실행했을 경우 아래와 같은 출력이 발생하는 것을 알 수 있다. 1 2 3 4 5 6 Bean class name: null Bean Scope: Bean constructor argument values: org.springframework.beans.factory.config.ConstructorArgumentValues@cb Bean depends on null Is lazy init bean? false Has bean property values? false Factory Method로 생성한 Bean 정보의 행방 Factory Method로 생성한 Bean의 경우 기본 정보(Bean의 클래스명, Scope)가 null로 표기된다. 이러한 정보들은 어디에 있을까? Breakpoint를 잡아 BeanDefinition 객체를 확인해 보았다. beanDefinition 객체의 factoryMethodMetadata 내부에 어느정도 Bean Definition에 관련된 내용을 확인할 수 있는 것을 알 수 있다. 다만, Scope 등의 정보는 여기에도 없다. 하지만 Scope를 설정해주지 않고도 정상 동작하는 것과, 여러 번의 객체 생성을 시도하여도 동일 객체가 반환되는 것을 보면 역시 기본 Scope인 Singleton으로 동작하는 것을 확인할 수 있었다. 다만 @Component, @Service 등의 어노테이션을 붙여 Bean으로 만든 경우에는 아래와 같이 BeanDefinition에 설정한 정보들이 정상적으로 들어있는 것을 알 수 있다. Naming Beans 모든 Bean들은 1개 이상의 식별자를 가진다. Container가 Bean들을 관리하기 위해서는 이 식별자가 유일해야 한다. @Component 어노테이션을 확인해보면 다음과 같이 value가 이름을 나타내는 것을 볼 수 있다. 1 2 3 4 5 6 /** * The value may indicate a suggestion for a logical component name, * to be turned into a Spring bean in case of an autodetected component. * @return the suggested component name, if any (or empty String otherwise) */ String value() default &quot;&quot;; 아래와 같은 예제를 작성해 보았다. ISimpleService.class 1 2 3 4 5 6 package com.leeyh0216.springframeworkstudy.namingbeans; public interface ISimpleService { void printVersion(); } SimpleServiceImplV1.class 1 2 3 4 5 6 7 8 9 10 11 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.stereotype.Component; @Component public class SimpleServiceImplV1 implements ISimpleService { @Override public void printVersion() { System.out.println(&quot;V1&quot;); } } SimpleServiceImplV2.class 1 2 3 4 5 6 7 8 9 10 11 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.stereotype.Component; @Component(&quot;SimpleServiceImpl&quot;) public class SimpleServiceImplV2 implements ISimpleService{ @Override public void printVersion() { System.out.println(&quot;V2&quot;); } } SimpleServiceImplV3.class 1 2 3 4 5 6 7 8 package com.leeyh0216.springframeworkstudy.namingbeans; public class SimpleServiceImplV3 implements ISimpleService { @Override public void printVersion() { System.out.println(&quot;V3&quot;); } } ApplicationConfiguration.class 1 2 3 4 5 6 7 8 9 10 11 12 13 14 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.context.annotation.Bean; import org.springframework.context.annotation.ComponentScan; import org.springframework.context.annotation.Configuration; @Configuration @ComponentScan(&quot;com.leeyh0216.springframeworkstudy.namingbeans&quot;) public class ApplicationConfiguration { @Bean(name={&quot;NewSimpleService&quot;,&quot;SimpleServiceV3&quot;}) public SimpleServiceImplV3 getSimpleServiceImplV3(){ return new SimpleServiceImplV3(); } } Application.class 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.context.annotation.AnnotationConfigApplicationContext; public class Application { public static void main(String[] args){ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(ApplicationConfiguration.class); ISimpleService b1 = applicationContext.getBean(&quot;simpleServiceImplV1&quot;, SimpleServiceImplV1.class); b1.printVersion(); ISimpleService b2 = applicationContext.getBean(&quot;SimpleServiceImpl&quot;, SimpleServiceImplV2.class); b2.printVersion(); ISimpleService b3_1 = applicationContext.getBean(&quot;NewSimpleService&quot;, SimpleServiceImplV3.class); b3_1.printVersion(); ISimpleService b3_2 = applicationContext.getBean(&quot;SimpleServiceV3&quot;, SimpleServiceImplV3.class); b3_2.printVersion(); } } SimpleServiceImplV1 클래스와 같이 이름을 지정하지 않은 경우 클래스명의 첫번째 문자를 소문자로 변경하고, Camel Case화 시켜서 이름으로 간주한다. SimpleServiceImplV2 클래스와 같이 이름을 명시적으로 지정하는 경우, 해당 이름을 사용하여 Bean을 찾을 수 있다. SimpleServiceImplV3 클래스의 경우 다른 클래스와 달리 팩토리 메서드로 생성했으며, @Bean 어노테이션이 사용되었다. @Bean 어노테이션의 경우 1개 이상의 이름을 지정할 수 있도록 되어 있다. 때문에 NewSimpleService, SimpleServiceV3 등으로 Bean을 접근하여도 동일한 Bean이 반환되는 것을 확인할 수 있다. @Bean 어노테이션의 name이 아래와 같이 지정되어 있기 때문에 1개 이상의 식별자를 사용할 수 있는 것으로 보인다. 1 2 3 4 5 6 7 8 9 10 /** * The name of this bean, or if several names, a primary bean name plus aliases. * &lt;p&gt;If left unspecified, the name of the bean is the name of the annotated method. * If specified, the method name is ignored. * &lt;p&gt;The bean name and aliases may also be configured via the {@link #value} * attribute if no other attributes are declared. * @see #value */ @AliasFor(&quot;value&quot;) String[] name() default {};" /><link rel="canonical" href="https://leeyh0216.github.io/posts/spring-core-1/" /><meta property="og:url" content="https://leeyh0216.github.io/posts/spring-core-1/" /><meta property="og:site_name" content="leeyh0216’s devlog" /><meta property="og:type" content="article" /><meta property="article:published_time" content="2019-05-18T10:00:00+09:00" /><meta name="twitter:card" content="summary" /><meta property="twitter:title" content="Spring IoC Container - Container, Bean overview" /><meta name="twitter:site" content="@twitter_username" /><meta name="twitter:creator" content="@leeyh0216" /><meta name="google-site-verification" content="google_meta_tag_verification" /> <script type="application/ld+json"> {"author":{"@type":"Person","name":"leeyh0216"},"description":"The IoC Container Introduction to the Spring IoC Container and Beans Inversion of Control(IoC, 제어의 역전)은 Dependency Injection(DI, 의존성 주입)로도 알려져 있다. 객체는 자신이 동작하는데에 필요한 의존성(객체)을 생성자 팩토리 메서드의 인자 Setter 를 통해 설정할 수 있도록 한다. Container는 객체를 생성할 때 의존성들을 위에서 정의한 방법으로 주입해준다. 객체가 자신의 초기화나 의존성의 설정을 스스로 하는 것이 아니라 Container에 위임하는 방식이기 때문에 제어의 역전이라고 불리우는 것이다. org.springframework.beans와 org.springframework.context 패키지가 Spring Framework의 IoC Container의 기반을 제공한다. 이 중 BeanFactory 인터페이스는 객체를 관리하는 매커니즘을 제공하고, ApplicationContext는 BeanFactory 를 상속받은 하위 인터페이스로써, AOP Message Resource Handling Event Publication WebApplicationContext와 같은 Application-Layer Specific Context 등의 엔터프라이즈 기능을 추가적으로 제공한다. Spring에서 Application을 구성하는 객체들은 Spring IoC Container에 의해 관리되며, Bean이라고 불린다. Bean은 Spring IoC Container에 의해 초기화, 조합, 관리된다. 또한 Bean과 Bean을 구성하는 의존성들은 Container에게는 Configuration metadata로 표현된다. Container Overview org.springframework.context.ApplicationContext는 Spring IoC Container를 대표하는 인터페이스로써 앞에서 언급한 Bean의 생성, 구성, 조합을 담당한다. Container는 어떤 객체를 초기화하고 구성하고 조합할지를 Congiruation metadata를 사용해서 수행한다. Configuration metadata는 XML, Java Annotations, Java Code 등의 다양한 포맷으로 존재한다. XML 방식이 전통적인 Congiruation metadata 표현 방식이지만, Java Annotations나 Java Code로도 Configuration metadata를 표현할 수 있다. Spring Boot Application을 공부하려는 목적이 크기 때문에, XML이나 Application Context를 직접 초기화하는 방법은 시도하지 않은 예정이다. Bean Overview Container는 Bean을 관리할 때 BeanDefinition이라는 객체를 이용하여 관리한다. BeanDefinition 안에는 다음과 같은 속성들이 있다. package-qualified class name: Bean을 정의할 실제 구현 클래스 Container에서의 Bean의 동작 상태(scope, lifecycle callbacks 등) Bean이 동작하는데 필요한 다른 Bean(collaborators 나 dependencies로 불림) @Component로 생성된 Bean의 Bean Definition “HelloWorld!!” 를 출력하는 서비스를 아래와 같이 인터페이스와 구현 클래스를 만들었다. IHelloService.class 1 2 3 4 5 6 package com.leeyh0216.springframeworkstudy.beandefinition; public interface IHelloService { void printHelloWorld(); } HelloServiceImpl.class 1 2 3 4 5 6 7 8 9 10 11 12 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.stereotype.Component; @Component(&quot;HelloService&quot;) public class HelloServiceImpl implements IHelloService{ @Override public void printHelloWorld() { System.out.println(&quot;Hello World!!&quot;); } } 그리고 위에서 정의된 HelloServiceImpl Bean을 스캔할 수 있도록 Configuration 클래스를 아래와 같이 생성하였다. ApplicationConfiguration.class 1 2 3 4 5 6 7 8 9 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.context.annotation.ComponentScan; import org.springframework.context.annotation.Configuration; @Configuration @ComponentScan(&quot;com.leeyh0216.springframeworkstudy.beandefinition&quot;) public class ApplicationConfiguration { } 아래와 같이 메인 함수를 작성하여 실행시켜보면 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.beans.factory.config.BeanDefinition; import org.springframework.context.annotation.AnnotationConfigApplicationContext; public class Application { public static void main(String[] args){ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(ApplicationConfiguration.class); BeanDefinition beanDefinition = applicationContext.getBeanDefinition(&quot;HelloService&quot;); System.out.println(&quot;Bean class name: &quot; + beanDefinition.getBeanClassName()); System.out.println(&quot;Bean Scope: &quot; + beanDefinition.getScope()); System.out.println(&quot;Bean constructor argument values: &quot; + beanDefinition.getConstructorArgumentValues()); System.out.println(&quot;Bean depends on &quot; + beanDefinition.getDependsOn()); System.out.println(&quot;Is lazy init bean? &quot; + beanDefinition.isLazyInit()); System.out.println(&quot;Has bean property values? &quot; + beanDefinition.hasPropertyValues()); } } 다음과 같은 출력이 발생한다. 1 2 3 4 5 6 Bean class name: com.leeyh0216.springframeworkstudy.beandefinition.HelloServiceImpl Bean Scope: singleton Bean constructor argument values: org.springframework.beans.factory.config.ConstructorArgumentValues@cb Bean depends on null Is lazy init bean? false Has bean property values? false 대부분의 정보가 정상적으로 출력되는 것을 알 수 있다. Factory 메소드로 생성된 Bean의 Bean Definition 위의 예제를 약간 수정하여 Factory Method로 Bean을 생성하도록 하였다. HelloServiceImpl.class 1 2 3 4 5 6 7 8 9 package com.leeyh0216.springframeworkstudy.beandefinition; public class HelloServiceImpl implements IHelloService{ @Override public void printHelloWorld() { System.out.println(&quot;Hello World!!&quot;); } } HelloServiceImpl 클래스의 경우 @Component 어노테이션을 없애서 자동으로 Bean으로 생성되는 것을 방지하였다. ApplicationConfiguration.class 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 package com.leeyh0216.springframeworkstudy.beandefinition; import org.springframework.context.annotation.Bean; import org.springframework.context.annotation.ComponentScan; import org.springframework.context.annotation.Configuration; @Configuration @ComponentScan(&quot;com.leeyh0216.springframeworkstudy.beandefinition&quot;) public class ApplicationConfiguration { @Bean(&quot;HelloService&quot;) public IHelloService getIHelloService(){ return new HelloServiceImpl(); } } ApplicationConfiguration.class에서는 IHelloService Bean을 생성할 수 있는 Factory Method를 만들었다. 위 변경된 사항으로 다시 메인 함수를 실행했을 경우 아래와 같은 출력이 발생하는 것을 알 수 있다. 1 2 3 4 5 6 Bean class name: null Bean Scope: Bean constructor argument values: org.springframework.beans.factory.config.ConstructorArgumentValues@cb Bean depends on null Is lazy init bean? false Has bean property values? false Factory Method로 생성한 Bean 정보의 행방 Factory Method로 생성한 Bean의 경우 기본 정보(Bean의 클래스명, Scope)가 null로 표기된다. 이러한 정보들은 어디에 있을까? Breakpoint를 잡아 BeanDefinition 객체를 확인해 보았다. beanDefinition 객체의 factoryMethodMetadata 내부에 어느정도 Bean Definition에 관련된 내용을 확인할 수 있는 것을 알 수 있다. 다만, Scope 등의 정보는 여기에도 없다. 하지만 Scope를 설정해주지 않고도 정상 동작하는 것과, 여러 번의 객체 생성을 시도하여도 동일 객체가 반환되는 것을 보면 역시 기본 Scope인 Singleton으로 동작하는 것을 확인할 수 있었다. 다만 @Component, @Service 등의 어노테이션을 붙여 Bean으로 만든 경우에는 아래와 같이 BeanDefinition에 설정한 정보들이 정상적으로 들어있는 것을 알 수 있다. Naming Beans 모든 Bean들은 1개 이상의 식별자를 가진다. Container가 Bean들을 관리하기 위해서는 이 식별자가 유일해야 한다. @Component 어노테이션을 확인해보면 다음과 같이 value가 이름을 나타내는 것을 볼 수 있다. 1 2 3 4 5 6 /** * The value may indicate a suggestion for a logical component name, * to be turned into a Spring bean in case of an autodetected component. * @return the suggested component name, if any (or empty String otherwise) */ String value() default &quot;&quot;; 아래와 같은 예제를 작성해 보았다. ISimpleService.class 1 2 3 4 5 6 package com.leeyh0216.springframeworkstudy.namingbeans; public interface ISimpleService { void printVersion(); } SimpleServiceImplV1.class 1 2 3 4 5 6 7 8 9 10 11 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.stereotype.Component; @Component public class SimpleServiceImplV1 implements ISimpleService { @Override public void printVersion() { System.out.println(&quot;V1&quot;); } } SimpleServiceImplV2.class 1 2 3 4 5 6 7 8 9 10 11 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.stereotype.Component; @Component(&quot;SimpleServiceImpl&quot;) public class SimpleServiceImplV2 implements ISimpleService{ @Override public void printVersion() { System.out.println(&quot;V2&quot;); } } SimpleServiceImplV3.class 1 2 3 4 5 6 7 8 package com.leeyh0216.springframeworkstudy.namingbeans; public class SimpleServiceImplV3 implements ISimpleService { @Override public void printVersion() { System.out.println(&quot;V3&quot;); } } ApplicationConfiguration.class 1 2 3 4 5 6 7 8 9 10 11 12 13 14 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.context.annotation.Bean; import org.springframework.context.annotation.ComponentScan; import org.springframework.context.annotation.Configuration; @Configuration @ComponentScan(&quot;com.leeyh0216.springframeworkstudy.namingbeans&quot;) public class ApplicationConfiguration { @Bean(name={&quot;NewSimpleService&quot;,&quot;SimpleServiceV3&quot;}) public SimpleServiceImplV3 getSimpleServiceImplV3(){ return new SimpleServiceImplV3(); } } Application.class 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 package com.leeyh0216.springframeworkstudy.namingbeans; import org.springframework.context.annotation.AnnotationConfigApplicationContext; public class Application { public static void main(String[] args){ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(ApplicationConfiguration.class); ISimpleService b1 = applicationContext.getBean(&quot;simpleServiceImplV1&quot;, SimpleServiceImplV1.class); b1.printVersion(); ISimpleService b2 = applicationContext.getBean(&quot;SimpleServiceImpl&quot;, SimpleServiceImplV2.class); b2.printVersion(); ISimpleService b3_1 = applicationContext.getBean(&quot;NewSimpleService&quot;, SimpleServiceImplV3.class); b3_1.printVersion(); ISimpleService b3_2 = applicationContext.getBean(&quot;SimpleServiceV3&quot;, SimpleServiceImplV3.class); b3_2.printVersion(); } } SimpleServiceImplV1 클래스와 같이 이름을 지정하지 않은 경우 클래스명의 첫번째 문자를 소문자로 변경하고, Camel Case화 시켜서 이름으로 간주한다. SimpleServiceImplV2 클래스와 같이 이름을 명시적으로 지정하는 경우, 해당 이름을 사용하여 Bean을 찾을 수 있다. SimpleServiceImplV3 클래스의 경우 다른 클래스와 달리 팩토리 메서드로 생성했으며, @Bean 어노테이션이 사용되었다. @Bean 어노테이션의 경우 1개 이상의 이름을 지정할 수 있도록 되어 있다. 때문에 NewSimpleService, SimpleServiceV3 등으로 Bean을 접근하여도 동일한 Bean이 반환되는 것을 확인할 수 있다. @Bean 어노테이션의 name이 아래와 같이 지정되어 있기 때문에 1개 이상의 식별자를 사용할 수 있는 것으로 보인다. 1 2 3 4 5 6 7 8 9 10 /** * The name of this bean, or if several names, a primary bean name plus aliases. * &lt;p&gt;If left unspecified, the name of the bean is the name of the annotated method. * If specified, the method name is ignored. * &lt;p&gt;The bean name and aliases may also be configured via the {@link #value} * attribute if no other attributes are declared. * @see #value */ @AliasFor(&quot;value&quot;) String[] name() default {};","url":"https://leeyh0216.github.io/posts/spring-core-1/","@type":"BlogPosting","headline":"Spring IoC Container - Container, Bean overview","dateModified":"2019-05-18T10:00:00+09:00","datePublished":"2019-05-18T10:00:00+09:00","mainEntityOfPage":{"@type":"WebPage","@id":"https://leeyh0216.github.io/posts/spring-core-1/"},"@context":"https://schema.org"}</script><title>Spring IoC Container - Container, Bean overview | leeyh0216's devlog</title><link rel="shortcut icon" href="/assets/img/favicons/favicon.ico" type="image/x-icon"><link rel="icon" href="/assets/img/favicons/favicon.ico" type="image/x-icon"><link rel="apple-touch-icon" href="/assets/img/favicons/apple-icon.png"><link rel="apple-touch-icon" href="/assets/img/favicons/apple-icon-precomposed.png"><link rel="apple-touch-icon" sizes="57x57" href="/assets/img/favicons/apple-icon-57x57.png"><link rel="apple-touch-icon" sizes="60x60" href="/assets/img/favicons/apple-icon-60x60.png"><link rel="apple-touch-icon" sizes="72x72" href="/assets/img/favicons/apple-icon-72x72.png"><link rel="apple-touch-icon" sizes="76x76" href="/assets/img/favicons/apple-icon-76x76.png"><link rel="apple-touch-icon" sizes="114x114" href="/assets/img/favicons/apple-icon-114x114.png"><link rel="apple-touch-icon" sizes="120x120" href="/assets/img/favicons/apple-icon-120x120.png"><link rel="apple-touch-icon" sizes="144x144" href="/assets/img/favicons/apple-icon-144x144.png"><link rel="apple-touch-icon" sizes="152x152" href="/assets/img/favicons/apple-icon-152x152.png"><link rel="apple-touch-icon" sizes="180x180" href="/assets/img/favicons/apple-icon-180x180.png"><link rel="icon" type="image/png" sizes="192x192" href="/assets/img/favicons/android-icon-192x192.png"><link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicons/favicon-32x32.png"><link rel="icon" type="image/png" sizes="96x96" href="/assets/img/favicons/favicon-96x96.png"><link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicons/favicon-16x16.png"><link rel="manifest" href="/assets/img/favicons/manifest.json"><meta name='msapplication-config' content='/assets/img/favicons/browserconfig.xml'><meta name="msapplication-TileColor" content="#ffffff"><meta name="msapplication-TileImage" content="/assets/img/favicons/ms-icon-144x144.png"><meta name="theme-color" content="#ffffff"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"><link rel="dns-prefetch" href="https://fonts.gstatic.com"><link rel="preconnect" href="https://www.google-analytics.com" crossorigin="use-credentials"><link rel="dns-prefetch" href="https://www.google-analytics.com"><link rel="preconnect" href="https://www.googletagmanager.com" crossorigin="anonymous"><link rel="dns-prefetch" href="https://www.googletagmanager.com"><link rel="preconnect" href="https://" crossorigin="use-credentials"><link rel="dns-prefetch" href="https://"><link rel="preconnect" href="https://cdn.jsdelivr.net"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha256-LA89z+k9fjgMKQ/kq4OO2Mrf8VltYml/VES+Rg0fh20=" crossorigin="anonymous"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.11.2/css/all.min.css" integrity="sha256-+N4/V/SbAFiW1MPBCXnfnP9QSN3+Keu+NlB+0ev/YKQ=" crossorigin="anonymous"><link rel="stylesheet" href="/assets/css/style.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@1.0.1/dist/bootstrap-toc.min.css"> <script src="https://cdn.jsdelivr.net/npm/jquery@3/dist/jquery.min.js"></script> <script defer src="https://cdn.jsdelivr.net/combine/npm/popper.js@1.15.0,npm/bootstrap@4/dist/js/bootstrap.min.js"></script> <script async src="https://cdn.jsdelivr.net/npm/countup.js@1.9.3/dist/countUp.min.js"></script> <script async src="/assets/js/dist/pvreport.min.js"></script> <script defer src="/assets/js/dist/post.min.js"></script> <script defer src="/app.js"></script> <script defer src="https://www.googletagmanager.com/gtag/js?id=UA-129061352-1"></script> <script> document.addEventListener("DOMContentLoaded", function(event) { window.dataLayer = window.dataLayer || []; function gtag(){dataLayer.push(arguments);} gtag('js', new Date()); gtag('config', 'UA-129061352-1'); }); </script><body data-spy="scroll" data-target="#toc"><div id="sidebar" class="d-flex flex-column align-items-end"><div class="profile-wrapper text-center"><div id="avatar"> <a href="/" alt="avatar" class="mx-auto"> <img src="https://cdn.jsdelivr.net/gh/cotes2020/chirpy-images/commons/avatar.jpg" alt="avatar" onerror="this.style.display='none'"> </a></div><div class="site-title mt-3"> <a href="/">leeyh0216's devlog</a></div><div class="site-subtitle font-italic">개발/일상 블로그</div></div><ul class="w-100"><li class="nav-item"> <a href="/" class="nav-link"> <i class="fa-fw fas fa-home ml-xl-3 mr-xl-3 unloaded"></i> <span>HOME</span> </a><li class="nav-item"> <a href="/categories/" class="nav-link"> <i class="fa-fw fas fa-stream ml-xl-3 mr-xl-3 unloaded"></i> <span>CATEGORIES</span> </a><li class="nav-item"> <a href="/tags/" class="nav-link"> <i class="fa-fw fas fa-tags ml-xl-3 mr-xl-3 unloaded"></i> <span>TAGS</span> </a><li class="nav-item"> <a href="/archives/" class="nav-link"> <i class="fa-fw fas fa-archive ml-xl-3 mr-xl-3 unloaded"></i> <span>ARCHIVES</span> </a><li class="nav-item"> <a href="/about/" class="nav-link"> <i class="fa-fw fas fa-info ml-xl-3 mr-xl-3 unloaded"></i> <span>ABOUT</span> </a></ul><div class="sidebar-bottom mt-auto d-flex flex-wrap justify-content-center"> <a href="https://github.com/leeyh0216" aria-label="github" class="order-3" target="_blank" rel="noopener"> <i class="fab fa-github-alt"></i> </a> <a href="https://www.linkedin.com/in/%EC%9A%A9%ED%99%98-%EC%9D%B4-84222a119/" aria-label="linkedin" class="order-4" target="_blank" rel="noopener"> <i class="fab fa-linkedin"></i> </a> <a href=" javascript:location.href = 'mailto:' + ['leeyh0216','gmail.com'].join('@')" aria-label="email" class="order-5" > <i class="fas fa-envelope"></i> </a> <a href="/feed.xml" aria-label="rss" class="order-6" > <i class="fas fa-rss"></i> </a> <span class="icon-border order-2"></span> <span id="mode-toggle-wrapper" class="order-1"> <i class="mode-toggle fas fa-adjust"></i> <script type="text/javascript"> class ModeToggle { static get MODE_KEY() { return "mode"; } static get DARK_MODE() { return "dark"; } static get LIGHT_MODE() { return "light"; } constructor() { if (this.hasMode) { if (this.isDarkMode) { if (!this.isSysDarkPrefer) { this.setDark(); } } else { if (this.isSysDarkPrefer) { this.setLight(); } } } var self = this; /* always follow the system prefers */ this.sysDarkPrefers.addListener(function() { if (self.hasMode) { if (self.isDarkMode) { if (!self.isSysDarkPrefer) { self.setDark(); } } else { if (self.isSysDarkPrefer) { self.setLight(); } } self.clearMode(); } self.updateMermaid(); }); } /* constructor() */ setDark() { $('html').attr(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.DARK_MODE); } setLight() { $('html').attr(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); sessionStorage.setItem(ModeToggle.MODE_KEY, ModeToggle.LIGHT_MODE); } clearMode() { $('html').removeAttr(ModeToggle.MODE_KEY); sessionStorage.removeItem(ModeToggle.MODE_KEY); } get sysDarkPrefers() { return window.matchMedia("(prefers-color-scheme: dark)"); } get isSysDarkPrefer() { return this.sysDarkPrefers.matches; } get isDarkMode() { return this.mode == ModeToggle.DARK_MODE; } get isLightMode() { return this.mode == ModeToggle.LIGHT_MODE; } get hasMode() { return this.mode != null; } get mode() { return sessionStorage.getItem(ModeToggle.MODE_KEY); } /* get the current mode on screen */ get modeStatus() { if (this.isDarkMode || (!this.hasMode && this.isSysDarkPrefer) ) { return ModeToggle.DARK_MODE; } else { return ModeToggle.LIGHT_MODE; } } updateMermaid() { if (typeof mermaid !== "undefined") { let expectedTheme = (this.modeStatus === ModeToggle.DARK_MODE? "dark" : "default"); let config = { theme: expectedTheme }; /* re-render the SVG › <https://github.com/mermaid-js/mermaid/issues/311#issuecomment-332557344> */ $(".mermaid").each(function() { let svgCode = $(this).prev().children().html(); $(this).removeAttr("data-processed"); $(this).html(svgCode); }); mermaid.initialize(config); mermaid.init(undefined, ".mermaid"); } } flipMode() { if (this.hasMode) { if (this.isSysDarkPrefer) { if (this.isLightMode) { this.clearMode(); } else { this.setLight(); } } else { if (this.isDarkMode) { this.clearMode(); } else { this.setDark(); } } } else { if (this.isSysDarkPrefer) { this.setLight(); } else { this.setDark(); } } this.updateMermaid(); } /* flipMode() */ } /* ModeToggle */ let toggle = new ModeToggle(); $(".mode-toggle").click(function() { toggle.flipMode(); }); </script> </span></div></div><div id="topbar-wrapper" class="row justify-content-center topbar-down"><div id="topbar" class="col-11 d-flex h-100 align-items-center justify-content-between"> <span id="breadcrumb"> <span> <a href="/"> Posts </a> </span> <span>Spring IoC Container - Container, Bean overview</span> </span> <i id="sidebar-trigger" class="fas fa-bars fa-fw"></i><div id="topbar-title"> Post</div><i id="search-trigger" class="fas fa-search fa-fw"></i> <span id="search-wrapper" class="align-items-center"> <i class="fas fa-search fa-fw"></i> <input class="form-control" id="search-input" type="search" aria-label="search" autocomplete="off" placeholder="Search..."> <i class="fa fa-times-circle fa-fw" id="search-cleaner"></i> </span> <span id="search-cancel" >Cancel</span></div></div><div id="main-wrapper"><div id="main"><div class="row"><div id="post-wrapper" class="col-12 col-lg-11 col-xl-8"><div class="post pl-1 pr-1 pl-sm-2 pr-sm-2 pl-md-4 pr-md-4"><h1 data-toc-skip>Spring IoC Container - Container, Bean overview</h1><div class="post-meta text-muted d-flex flex-column"><div> <span class="semi-bold"> leeyh0216 </span> <span class="timeago " data-toggle="tooltip" data-placement="bottom" title="Sat, May 18, 2019, 10:00 AM +0900" prep="on" > May 18, 2019 <i class="unloaded">2019-05-18T10:00:00+09:00</i> </span></div><div> <span class="readtime" data-toggle="tooltip" data-placement="bottom" title="2083 words">11 min</span> <span id="pv" class="pageviews"><i class="fas fa-spinner fa-spin fa-fw"></i></span></div></div><div class="post-content"><h1 id="the-ioc-container">The IoC Container</h1><h2 id="introduction-to-the-spring-ioc-container-and-beans">Introduction to the Spring IoC Container and Beans</h2><p>Inversion of Control(IoC, 제어의 역전)은 Dependency Injection(DI, 의존성 주입)로도 알려져 있다.</p><p>객체는 자신이 동작하는데에 필요한 의존성(객체)을</p><ul><li>생성자<li>팩토리 메서드의 인자<li>Setter 를 통해 설정할 수 있도록 한다.</ul><p>Container는 객체를 생성할 때 의존성들을 위에서 정의한 방법으로 주입해준다.</p><p>객체가 자신의 초기화나 의존성의 설정을 스스로 하는 것이 아니라 Container에 위임하는 방식이기 때문에 제어의 역전이라고 불리우는 것이다.</p><hr /><p><code class="language-plaintext highlighter-rouge">org.springframework.beans</code>와 <code class="language-plaintext highlighter-rouge">org.springframework.context</code> 패키지가 Spring Framework의 IoC Container의 기반을 제공한다.</p><p>이 중 <code class="language-plaintext highlighter-rouge">BeanFactory</code> 인터페이스는 객체를 관리하는 매커니즘을 제공하고, <code class="language-plaintext highlighter-rouge">ApplicationContext</code>는 <code class="language-plaintext highlighter-rouge">BeanFactory</code> 를 상속받은 하위 인터페이스로써,</p><ul><li>AOP<li>Message Resource Handling<li>Event Publication<li>WebApplicationContext와 같은 Application-Layer Specific Context</ul><p>등의 엔터프라이즈 기능을 추가적으로 제공한다.</p><p>Spring에서 Application을 구성하는 객체들은 Spring IoC Container에 의해 관리되며, Bean이라고 불린다. Bean은 Spring IoC Container에 의해 초기화, 조합, 관리된다.</p><p>또한 Bean과 Bean을 구성하는 의존성들은 Container에게는 Configuration metadata로 표현된다.</p><h2 id="container-overview">Container Overview</h2><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-src="/assets/spring/spring_ioc_container.jpg" alt="Spring IoC Container" /></p><p><code class="language-plaintext highlighter-rouge">org.springframework.context.ApplicationContext</code>는 Spring IoC Container를 대표하는 인터페이스로써 앞에서 언급한 Bean의 생성, 구성, 조합을 담당한다.</p><p>Container는 어떤 객체를 초기화하고 구성하고 조합할지를 Congiruation metadata를 사용해서 수행한다. Configuration metadata는 <code class="language-plaintext highlighter-rouge">XML</code>, <code class="language-plaintext highlighter-rouge">Java Annotations</code>, <code class="language-plaintext highlighter-rouge">Java Code</code> 등의 다양한 포맷으로 존재한다.</p><p><code class="language-plaintext highlighter-rouge">XML</code> 방식이 전통적인 Congiruation metadata 표현 방식이지만, <code class="language-plaintext highlighter-rouge">Java Annotations</code>나 <code class="language-plaintext highlighter-rouge">Java Code</code>로도 Configuration metadata를 표현할 수 있다.</p><blockquote><p>Spring Boot Application을 공부하려는 목적이 크기 때문에, <code class="language-plaintext highlighter-rouge">XML</code>이나 <code class="language-plaintext highlighter-rouge">Application Context</code>를 직접 초기화하는 방법은 시도하지 않은 예정이다.</p></blockquote><h2 id="bean-overview">Bean Overview</h2><p>Container는 Bean을 관리할 때 <code class="language-plaintext highlighter-rouge">BeanDefinition</code>이라는 객체를 이용하여 관리한다. <code class="language-plaintext highlighter-rouge">BeanDefinition</code> 안에는 다음과 같은 속성들이 있다.</p><ul><li><code class="language-plaintext highlighter-rouge">package-qualified class name</code>: Bean을 정의할 실제 구현 클래스<li>Container에서의 Bean의 동작 상태(scope, lifecycle callbacks 등)<li>Bean이 동작하는데 필요한 다른 Bean(collaborators 나 dependencies로 불림)</ul><h3 id="component로-생성된-bean의-bean-definition"><code class="language-plaintext highlighter-rouge">@Component</code>로 생성된 Bean의 Bean Definition</h3><p>“HelloWorld!!” 를 출력하는 서비스를 아래와 같이 인터페이스와 구현 클래스를 만들었다.</p><p><code class="language-plaintext highlighter-rouge">IHelloService.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.beandefinition;
+
+public interface IHelloService {
+
+    void printHelloWorld();
+}
+</pre></table></code></div></div><p><code class="language-plaintext highlighter-rouge">HelloServiceImpl.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.beandefinition;
+
+import org.springframework.stereotype.Component;
+
+@Component("HelloService")
+public class HelloServiceImpl implements IHelloService{
+
+    @Override
+    public void printHelloWorld() {
+        System.out.println("Hello World!!");
+    }
+}
+</pre></table></code></div></div><p>그리고 위에서 정의된 <code class="language-plaintext highlighter-rouge">HelloServiceImpl</code> Bean을 스캔할 수 있도록 Configuration 클래스를 아래와 같이 생성하였다.</p><p><code class="language-plaintext highlighter-rouge">ApplicationConfiguration.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.beandefinition;
+
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@ComponentScan("com.leeyh0216.springframeworkstudy.beandefinition")
+public class ApplicationConfiguration {
+}
+</pre></table></code></div></div><p>아래와 같이 메인 함수를 작성하여 실행시켜보면</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.beandefinition;
+
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+public class Application {
+
+    public static void main(String[] args){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(ApplicationConfiguration.class);
+        BeanDefinition beanDefinition = applicationContext.getBeanDefinition("HelloService");
+
+        System.out.println("Bean class name: " + beanDefinition.getBeanClassName());
+        System.out.println("Bean Scope: " + beanDefinition.getScope());
+        System.out.println("Bean constructor argument values: " + beanDefinition.getConstructorArgumentValues());
+        System.out.println("Bean depends on " + beanDefinition.getDependsOn());
+        System.out.println("Is lazy init bean? " + beanDefinition.isLazyInit());
+        System.out.println("Has bean property values? " + beanDefinition.hasPropertyValues());
+    }
+}
+</pre></table></code></div></div><p>다음과 같은 출력이 발생한다.</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre>Bean class name: com.leeyh0216.springframeworkstudy.beandefinition.HelloServiceImpl
+Bean Scope: singleton
+Bean constructor argument values: org.springframework.beans.factory.config.ConstructorArgumentValues@cb
+Bean depends on null
+Is lazy init bean? false
+Has bean property values? false
+</pre></table></code></div></div><p>대부분의 정보가 정상적으로 출력되는 것을 알 수 있다.</p><h3 id="factory-메소드로-생성된-bean의-bean-definition">Factory 메소드로 생성된 Bean의 Bean Definition</h3><p>위의 예제를 약간 수정하여 Factory Method로 Bean을 생성하도록 하였다.</p><p><code class="language-plaintext highlighter-rouge">HelloServiceImpl.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.beandefinition;
+
+public class HelloServiceImpl implements IHelloService{
+
+    @Override
+    public void printHelloWorld() {
+        System.out.println("Hello World!!");
+    }
+}
+</pre></table></code></div></div><p><code class="language-plaintext highlighter-rouge">HelloServiceImpl</code> 클래스의 경우 <code class="language-plaintext highlighter-rouge">@Component</code> 어노테이션을 없애서 자동으로 Bean으로 생성되는 것을 방지하였다.</p><p><code class="language-plaintext highlighter-rouge">ApplicationConfiguration.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.beandefinition;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@ComponentScan("com.leeyh0216.springframeworkstudy.beandefinition")
+public class ApplicationConfiguration {
+
+    @Bean("HelloService")
+    public IHelloService getIHelloService(){
+        return new HelloServiceImpl();
+    }
+
+}
+</pre></table></code></div></div><p><code class="language-plaintext highlighter-rouge">ApplicationConfiguration.class</code>에서는 <code class="language-plaintext highlighter-rouge">IHelloService</code> Bean을 생성할 수 있는 Factory Method를 만들었다.</p><p>위 변경된 사항으로 다시 메인 함수를 실행했을 경우 아래와 같은 출력이 발생하는 것을 알 수 있다.</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre>Bean class name: null
+Bean Scope: 
+Bean constructor argument values: org.springframework.beans.factory.config.ConstructorArgumentValues@cb
+Bean depends on null
+Is lazy init bean? false
+Has bean property values? false
+</pre></table></code></div></div><h3 id="factory-method로-생성한-bean-정보의-행방">Factory Method로 생성한 Bean 정보의 행방</h3><p>Factory Method로 생성한 Bean의 경우 기본 정보(Bean의 클래스명, Scope)가 null로 표기된다. 이러한 정보들은 어디에 있을까? Breakpoint를 잡아 BeanDefinition 객체를 확인해 보았다.</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-src="/assets/spring/factory_method_beandefinition.png" alt="Factory Method Bean Definition" /></p><p><code class="language-plaintext highlighter-rouge">beanDefinition</code> 객체의 <code class="language-plaintext highlighter-rouge">factoryMethodMetadata</code> 내부에 어느정도 Bean Definition에 관련된 내용을 확인할 수 있는 것을 알 수 있다.</p><p>다만, Scope 등의 정보는 여기에도 없다. 하지만 Scope를 설정해주지 않고도 정상 동작하는 것과, 여러 번의 객체 생성을 시도하여도 동일 객체가 반환되는 것을 보면 역시 기본 Scope인 Singleton으로 동작하는 것을 확인할 수 있었다.</p><p>다만 <code class="language-plaintext highlighter-rouge">@Component</code>, <code class="language-plaintext highlighter-rouge">@Service</code> 등의 어노테이션을 붙여 Bean으로 만든 경우에는 아래와 같이 BeanDefinition에 설정한 정보들이 정상적으로 들어있는 것을 알 수 있다.</p><p><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-src="/assets/spring/annotated_bean_beandefinition.png" alt="Annotated Bean Bean Definition" /></p><hr /><h3 id="naming-beans">Naming Beans</h3><p>모든 Bean들은 1개 이상의 식별자를 가진다. Container가 Bean들을 관리하기 위해서는 이 식별자가 유일해야 한다.</p><p><code class="language-plaintext highlighter-rouge">@Component</code> 어노테이션을 확인해보면 다음과 같이 value가 이름을 나타내는 것을 볼 수 있다.</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre>/**
+ * The value may indicate a suggestion for a logical component name,
+ * to be turned into a Spring bean in case of an autodetected component.
+ * @return the suggested component name, if any (or empty String otherwise)
+ */
+String value() default "";
+</pre></table></code></div></div><p>아래와 같은 예제를 작성해 보았다.</p><p><code class="language-plaintext highlighter-rouge">ISimpleService.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.namingbeans;
+
+public interface ISimpleService {
+
+    void printVersion();
+}
+</pre></table></code></div></div><p><code class="language-plaintext highlighter-rouge">SimpleServiceImplV1.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.namingbeans;
+
+import org.springframework.stereotype.Component;
+
+@Component
+public class SimpleServiceImplV1 implements ISimpleService {
+    @Override
+    public void printVersion() {
+        System.out.println("V1");
+    }
+}
+</pre></table></code></div></div><p><code class="language-plaintext highlighter-rouge">SimpleServiceImplV2.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.namingbeans;
+
+import org.springframework.stereotype.Component;
+
+@Component("SimpleServiceImpl")
+public class SimpleServiceImplV2 implements ISimpleService{
+    @Override
+    public void printVersion() {
+        System.out.println("V2");
+    }
+}
+</pre></table></code></div></div><p><code class="language-plaintext highlighter-rouge">SimpleServiceImplV3.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.namingbeans;
+
+public class SimpleServiceImplV3 implements ISimpleService {
+    @Override
+    public void printVersion() {
+        System.out.println("V3");
+    }
+}
+</pre></table></code></div></div><p><code class="language-plaintext highlighter-rouge">ApplicationConfiguration.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.namingbeans;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+@ComponentScan("com.leeyh0216.springframeworkstudy.namingbeans")
+public class ApplicationConfiguration {
+    @Bean(name={"NewSimpleService","SimpleServiceV3"})
+    public SimpleServiceImplV3 getSimpleServiceImplV3(){
+        return new SimpleServiceImplV3();
+    }
+}
+</pre></table></code></div></div><p><code class="language-plaintext highlighter-rouge">Application.class</code></p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+</pre><td class="rouge-code"><pre>package com.leeyh0216.springframeworkstudy.namingbeans;
+
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+public class Application {
+    public static void main(String[] args){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(ApplicationConfiguration.class);
+
+        ISimpleService b1 = applicationContext.getBean("simpleServiceImplV1", SimpleServiceImplV1.class);
+        b1.printVersion();
+
+        ISimpleService b2 = applicationContext.getBean("SimpleServiceImpl", SimpleServiceImplV2.class);
+        b2.printVersion();
+
+        ISimpleService b3_1 = applicationContext.getBean("NewSimpleService", SimpleServiceImplV3.class);
+        b3_1.printVersion();
+
+        ISimpleService b3_2 = applicationContext.getBean("SimpleServiceV3", SimpleServiceImplV3.class);
+        b3_2.printVersion();
+    }
+}
+</pre></table></code></div></div><p><code class="language-plaintext highlighter-rouge">SimpleServiceImplV1</code> 클래스와 같이 이름을 지정하지 않은 경우 클래스명의 첫번째 문자를 소문자로 변경하고, Camel Case화 시켜서 이름으로 간주한다.</p><p><code class="language-plaintext highlighter-rouge">SimpleServiceImplV2</code> 클래스와 같이 이름을 명시적으로 지정하는 경우, 해당 이름을 사용하여 Bean을 찾을 수 있다.</p><p><code class="language-plaintext highlighter-rouge">SimpleServiceImplV3</code> 클래스의 경우 다른 클래스와 달리 팩토리 메서드로 생성했으며, <code class="language-plaintext highlighter-rouge">@Bean</code> 어노테이션이 사용되었다. <code class="language-plaintext highlighter-rouge">@Bean</code> 어노테이션의 경우 1개 이상의 이름을 지정할 수 있도록 되어 있다. 때문에 NewSimpleService, SimpleServiceV3 등으로 Bean을 접근하여도 동일한 Bean이 반환되는 것을 확인할 수 있다.</p><p><code class="language-plaintext highlighter-rouge">@Bean</code> 어노테이션의 name이 아래와 같이 지정되어 있기 때문에 1개 이상의 식별자를 사용할 수 있는 것으로 보인다.</p><div class="language-plaintext highlighter-rouge"><div class="highlight"><code><table class="rouge-table"><tbody><tr><td class="rouge-gutter gl"><pre class="lineno">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+</pre><td class="rouge-code"><pre>/**
+ * The name of this bean, or if several names, a primary bean name plus aliases.
+ * &lt;p&gt;If left unspecified, the name of the bean is the name of the annotated method.
+ * If specified, the method name is ignored.
+ * &lt;p&gt;The bean name and aliases may also be configured via the {@link #value}
+ * attribute if no other attributes are declared.
+ * @see #value
+ */
+@AliasFor("value")
+String[] name() default {};
+</pre></table></code></div></div></div><div class="post-tail-wrapper text-muted"><div class="post-tags"> <i class="fa fa-tags fa-fw mr-1"></i> <a href="/tags/spring/" class="post-tag no-text-decoration" >spring</a></div><div class="post-tail-bottom d-flex justify-content-between align-items-center mt-3 pt-5 pb-2"><div class="license-wrapper"> This post is licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> by the author.</div><div class="share-wrapper"> <span class="share-label text-muted mr-1">Share</span> <span class="share-icons"> <a href="https://twitter.com/intent/tweet?text=Spring IoC Container - Container, Bean overview - leeyh0216's devlog&url=https://leeyh0216.github.io/posts/spring-core-1/" data-toggle="tooltip" data-placement="top" title="Twitter" target="_blank" rel="noopener" aria-label="Twitter"> <i class="fa-fw fab fa-twitter"></i> </a> <a href="https://www.facebook.com/sharer/sharer.php?title=Spring IoC Container - Container, Bean overview - leeyh0216's devlog&u=https://leeyh0216.github.io/posts/spring-core-1/" data-toggle="tooltip" data-placement="top" title="Facebook" target="_blank" rel="noopener" aria-label="Facebook"> <i class="fa-fw fab fa-facebook-square"></i> </a> <a href="https://telegram.me/share?text=Spring IoC Container - Container, Bean overview - leeyh0216's devlog&url=https://leeyh0216.github.io/posts/spring-core-1/" data-toggle="tooltip" data-placement="top" title="Telegram" target="_blank" rel="noopener" aria-label="Telegram"> <i class="fa-fw fab fa-telegram"></i> </a> <i class="fa-fw fas fa-link small" onclick="copyLink()" data-toggle="tooltip" data-placement="top" title="Copy link"></i> </span></div></div></div></div></div><div id="panel-wrapper" class="col-xl-3 pl-2 text-muted topbar-down"><div class="access"><div id="access-tags"> <span>Trending Tags</span><div class="d-flex flex-wrap mt-3 mb-1 mr-3"> <a class="post-tag" href="/tags/ps/">ps</a> <a class="post-tag" href="/tags/spring/">spring</a> <a class="post-tag" href="/tags/leetcode/">leetcode</a> <a class="post-tag" href="/tags/apache-spark/">apache-spark</a> <a class="post-tag" href="/tags/java/">java</a> <a class="post-tag" href="/tags/kafka/">kafka</a> <a class="post-tag" href="/tags/apache-druid/">apache-druid</a> <a class="post-tag" href="/tags/string/">string</a> <a class="post-tag" href="/tags/study/">study</a> <a class="post-tag" href="/tags/docker/">docker</a></div></div></div><script src="https://cdn.jsdelivr.net/gh/afeld/bootstrap-toc@1.0.1/dist/bootstrap-toc.min.js"></script><div id="toc-wrapper" class="pl-0 pr-4 mb-5"> <span class="pl-3 pt-2 mb-2">Contents</span><nav id="toc" data-toggle="toc"></nav></div></div></div><div class="row"><div class="col-12 col-lg-11 col-xl-8"><div id="post-extend-wrapper" class="pl-1 pr-1 pl-sm-2 pr-sm-2 pl-md-4 pr-md-4"><div id="related-posts" class="mt-5 mb-2 mb-sm-4"><h3 class="pt-2 mt-1 mb-4 ml-1" data-toc-skip>Further Reading</h3><div class="card-deck mb-4"><div class="card"> <a href="/posts/spring-cloud-zuul/"><div class="card-body"> <span class="timeago small" > Nov 10, 2018 <i class="unloaded">2018-11-10T15:00:00+09:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>Spring Cloud - Zuul(1)</h3><div class="text-muted small"><p> 개요 2017년 후반부터 2018년 초까지 팀 내 서비스들을 마이크로서비스 아키텍쳐 형태로 개발하는 프로젝트를 진행하였다. 사내에서 L7 Switch를 제공하고 있었지만, 서비스가 추가될 때마다 요청하기도 번거롭고 Software Level Gateway에서만 할 수 있는 작업들도 여럿 있었다. 당시에 Gateway 후보로 Spring Cloud...</p></div></div></a></div><div class="card"> <a href="/posts/ioc_and_di_pattern/"><div class="card-body"> <span class="timeago small" > Dec 19, 2018 <i class="unloaded">2018-12-19T10:00:00+09:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>Inversion of Control Containers and the Dependency Injection pattern</h3><div class="text-muted small"><p> 이 글은 Martin Fowler의 Inversion of Control Containers and the Dependency Injection pattern을 요약 정리한 글입니다. Inversion of Control Containers and the Dependency Injection pattern 많은 오픈소스들은 J2EE 기술에 ...</p></div></div></a></div><div class="card"> <a href="/posts/spring-core-4/"><div class="card-body"> <span class="timeago small" > Dec 23, 2018 <i class="unloaded">2018-12-23T10:00:00+09:00</i> </span><h3 class="pt-0 mt-1 mb-3" data-toc-skip>Spring Core Technologies - The IoC Container(4)</h3><div class="text-muted small"><p> The IoC Container Dependencies 간단한 어플리케이션부터 기업형 어플리케이션까지 하나의 객체로만 동작하는 프로그램은 없다. 적어도 몇개의 객체들이 서로 상호작용하며 어플리케이션을 구성하고 있다. Dependency Injection 의존성 주입(Dependency Injection, D.I)은 객체들이 자신의 의존성(의존 ...</p></div></div></a></div></div></div><div class="post-navigation d-flex justify-content-between"> <a href="/posts/spring-with-docker-1/" class="btn btn-outline-primary" prompt="Older"><p>Spring + MongoDB + Docker 조합 사용 테스트</p></a> <a href="/posts/streaming-101/" class="btn btn-outline-primary" prompt="Newer"><p>Streaming Systems - Streaming 101</p></a></div></div></div></div><script type="text/javascript" src="https://cdn.jsdelivr.net/npm/lozad/dist/lozad.min.js"></script> <script type="text/javascript"> const imgs = document.querySelectorAll('.post-content img'); const observer = lozad(imgs); observer.observe(); </script><footer class="d-flex w-100 justify-content-center"><div class="d-flex justify-content-between align-items-center"><div class="footer-left"><p class="mb-0"> © 2024 <a href="https://twitter.com/username">leeyh0216</a>. <span data-toggle="tooltip" data-placement="top" title="Except where otherwise noted, the blog posts on this site are licensed under the Creative Commons Attribution 4.0 International (CC BY 4.0) License by the author.">Some rights reserved.</span></p></div><div class="footer-right"><p class="mb-0"> Powered by <a href="https://jekyllrb.com" target="_blank" rel="noopener">Jekyll</a> with <a href="https://github.com/cotes2020/jekyll-theme-chirpy" target="_blank" rel="noopener">Chirpy</a> theme.</p></div></div></footer></div><div id="search-result-wrapper" class="d-flex justify-content-center unloaded"><div class="col-12 col-sm-11 post-content"><div id="search-hints"><h4 class="text-muted mb-4">Trending Tags</h4><a class="post-tag" href="/tags/ps/">ps</a> <a class="post-tag" href="/tags/spring/">spring</a> <a class="post-tag" href="/tags/leetcode/">leetcode</a> <a class="post-tag" href="/tags/apache-spark/">apache spark</a> <a class="post-tag" href="/tags/java/">java</a> <a class="post-tag" href="/tags/kafka/">kafka</a> <a class="post-tag" href="/tags/apache-druid/">apache druid</a> <a class="post-tag" href="/tags/string/">string</a> <a class="post-tag" href="/tags/study/">study</a> <a class="post-tag" href="/tags/docker/">docker</a></div><div id="search-results" class="d-flex flex-wrap justify-content-center text-muted mt-3"></div></div></div></div><div id="mask"></div><a id="back-to-top" href="#" aria-label="back-to-top" class="btn btn-lg btn-box-shadow" role="button"> <i class="fas fa-angle-up"></i> </a> <script src="https://cdn.jsdelivr.net/npm/simple-jekyll-search@1.7.3/dest/simple-jekyll-search.min.js"></script> <script> SimpleJekyllSearch({ searchInput: document.getElementById('search-input'), resultsContainer: document.getElementById('search-results'), json: '/assets/js/data/search.json', searchResultTemplate: '<div class="pl-1 pr-1 pl-sm-2 pr-sm-2 pl-lg-4 pr-lg-4 pl-xl-0 pr-xl-0"> <a href="https://leeyh0216.github.io{url}">{title}</a><div class="post-meta d-flex flex-column flex-sm-row text-muted mt-1 mb-1"> {categories} {tags}</div><p>{snippet}</p></div>', noResultsText: '<p class="mt-5">Oops! No result founds.</p>', templateMiddleware: function(prop, value, template) { if (prop === 'categories') { if (value === '') { return `${value}`; } else { return `<div class="mr-sm-4"><i class="far fa-folder fa-fw"></i>${value}</div>`; } } if (prop === 'tags') { if (value === '') { return `${value}`; } else { return `<div><i class="fa fa-tag fa-fw"></i>${value}</div>`; } } } }); </script>
